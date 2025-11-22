@@ -8,12 +8,11 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    // Don't attach token for auth endpoints
     if (config.url && config.url.startsWith("/api/auth/")) {
       return config;
     }
 
-    const stored = localStorage.getItem("auth");
+    const stored = localStorage.getItem("auth"); // 👈 matches AuthContext
     if (stored) {
       try {
         const parsed = JSON.parse(stored);

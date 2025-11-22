@@ -10,14 +10,15 @@ export default function ImportExportBar({ onImported }) {
     formData.append("file", file);
 
     try {
-      const res = await api.post("/api/products/import", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data"
-        }
-      });
-      alert(
-        `Import completed. Added: ${res.data.added}, Skipped: ${res.data.skipped}`
-      );
+      // in ImportExportBar.jsx
+const res = await api.post("/api/products/import", formData, {
+  headers: { "Content-Type": "multipart/form-data" }
+});
+console.log("Import result:", res.data);  // 👈 add this
+alert(
+  `Import completed. Added: ${res.data.added}, Skipped: ${res.data.skipped}`
+);
+
       onImported?.(); // refresh product list
     } catch (err) {
       console.error("Import error:", err);

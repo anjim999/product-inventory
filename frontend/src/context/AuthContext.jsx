@@ -4,29 +4,38 @@ import { createContext, useContext, useEffect, useState } from "react";
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
+  // auth = { token, user } or null
   const [auth, setAuth] = useState(null);
+  const [loading, setLoading] = useState(true);
 
+  // Load auth from localStorage on first render
   useEffect(() => {
-    const stored = localStorage.getItem("auth");
+    const stored = localStorage.getItem("auth"); // 👈 KEEP KEY = "auth"
     if (stored) {
       try {
-        setAuth(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        // basic sanity check
+        if (parsed && parsed.token) {
+          setAuth(parsed);
+        } else {
+          localStorage.removeItem("auth");
+        }
       } catch (e) {
         console.error("Failed to parse auth from localStorage", e);
         localStorage.removeItem("auth");
       }
     }
+    setLoading(false);
   }, []);
 
+  // data should be { message, token, user }
   const login = (data) => {
-    // backend sends: { message, token, user }
     const payload = {
       token: data.token,
       user: data.user
     };
-    console.log("Saving auth to context:", payload);
     setAuth(payload);
-    localStorage.setItem("auth", JSON.stringify(payload));
+    localStorage.setItem("auth", JSON.stringify(payload)); // 👈 same key used by axios
   };
 
   const logout = () => {
@@ -35,7 +44,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ auth, login, logout }}>
+    <AuthContext.Provider value={{ auth, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

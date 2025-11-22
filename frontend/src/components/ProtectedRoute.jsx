@@ -3,13 +3,18 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function ProtectedRoute({ children }) {
-  const { auth } = useAuth();
+  const { auth, loading } = useAuth();
 
-  console.log("ProtectedRoute auth:", auth);
+  // Wait until we know if user is logged in or not
+  if (loading) {
+    return null; // or a spinner component
+  }
 
+  // Not logged in → send to login
   if (!auth?.token) {
     return <Navigate to="/login" replace />;
   }
 
+  // Logged in → render protected page
   return children;
 }
