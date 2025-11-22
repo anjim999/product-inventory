@@ -11,28 +11,28 @@ const app = express();
 
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://product-inventory-rouge.vercel.app'
+  'https://product-inventory-nu.vercel.app' // 👈 removed trailing slash
 ];
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // Allow requests with no origin (like Postman / curl)
-      if (!origin) return callback(null, true);
+const corsOptions = {
+  origin(origin, callback) {
+    // Allow requests with no origin (like Postman / curl)
+    if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
 
-      console.log('Blocked by CORS, origin was:', origin);
-      return callback(new Error('Not allowed by CORS'));
-    },
-    credentials: true,
-  })
-);
+    console.log('Blocked by CORS, origin was:', origin);
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+};
 
-// Handle preflight for all routes
-app.options('*', cors());
+app.use(cors(corsOptions));
+
+// Handle preflight for all routes using SAME options
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
 
