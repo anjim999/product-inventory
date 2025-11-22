@@ -1,3 +1,4 @@
+// backend/src/routes/auth.js
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -9,24 +10,37 @@ const { sendOtpEmail } = require("../utils/mailer");
 
 const router = express.Router();
 
+// helper: validation wrapper
+const validate = (rules) => [
+  ...rules,
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      console.error("Validation error:", errors.array());
+      return res.status(400).json({ errors: errors.array() });
+    }
+    next();
+  }
+];
+
 /**
  * POST /api/auth/register-request-otp
  * body: { email }
- * Sends OTP for registration to email
  */
 router.post(
   "/register-request-otp",
-  body("email").isEmail(),
+  validate([body("email").isEmail().withMessage("Valid email required")]),
   (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
     const { email } = req.body;
 
     db.get("SELECT id FROM users WHERE email = ?", [email], async (err, user) => {
-      if (err) return res.status(500).json({ message: "DB error" });
-      if (user) return res.status(400).json({ message: "Email already registered" });
+      if (err) {
+        console.error("DB error on register-request-otp:", err);
+        return res.status(500).json({ message: "DB error" });
+      }
+      if (user) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
 
       const code = generateOtp();
       const expiresAt = getExpiry(10);
@@ -34,13 +48,15 @@ router.post(
       db.run(
         "INSERT INTO otps (email, code, purpose, expires_at) VALUES (?, ?, ?, ?)",
         [email, code, "REGISTER", expiresAt],
-        async function (err2) {
-          if (err2) return res.status(500).json({ message: "DB error" });
+        async (err2) => {
+          if (err2) {
+            console.error("DB error inserting OTP:", err2);
+            return res.status(500).json({ message: "DB error" });
+          }
 
           try {
-            // Send OTP via email
             await sendOtpEmail({ to: email, otp: code, purpose: "REGISTER" });
-            console.log("Registration OTP for", email, "=>", code); // debug log
+            console.log("Registration OTP for", email, "=>", code);
             return res.json({
               message: "OTP sent to email for registration"
             });
@@ -62,24 +78,28 @@ router.post(
  */
 router.post(
   "/register-verify",
-  body("email").isEmail(),
-  body("otp").isLength({ min: 4 }),
-  body("password").isLength({ min: 6 }),
+  validate([
+    body("email").isEmail(),
+    body("otp").isLength({ min: 4 }),
+    body("password").isLength({ min: 6 })
+  ]),
   (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
-
     const { email, otp, password } = req.body;
 
     db.get(
       "SELECT * FROM otps WHERE email = ? AND code = ? AND purpose = ? AND used = 0",
       [email, otp, "REGISTER"],
       (err, otpRow) => {
-        if (err) return res.status(500).json({ message: "DB error" });
-        if (!otpRow) return res.status(400).json({ message: "Invalid OTP" });
+        if (err) {
+          console.error("DB error reading OTP:", err);
+          return res.status(500).json({ message: "DB error" });
+        }
+        if (!otpRow) {
+          return res.status(400).json({ message: "Invalid OTP" });
+        }
 
-        const now = new Date().toISOString();
-        if (otpRow.expires_at < now) {
+        const nowIso = new Date().toISOString();
+        if (otpRow.expires_at < nowIso) {
           return res.status(400).json({ message: "OTP expired" });
         }
 
@@ -91,22 +111,21 @@ router.post(
           [email, hashed, 1, createdAt],
           function (err2) {
             if (err2) {
-              console.error(err2);
+              console.error("DB error inserting user:", err2);
               return res.status(500).json({ message: "DB error" });
             }
 
             db.run("UPDATE otps SET used = 1 WHERE id = ?", [otpRow.id]);
 
-            const token = jwt.sign(
-              { userId: this.lastID, email },
-              JWT_SECRET,
-              { expiresIn: "1d" }
-            );
+            const userId = this.lastID;
+            const token = jwt.sign({ userId, email }, JWT_SECRET, {
+              expiresIn: "1d"
+            });
 
             return res.json({
               message: "Registration successful",
               token,
-              user: { id: this.lastID, email }
+              user: { id: userId, email }
             });
           }
         );
@@ -118,22 +137,31 @@ router.post(
 /**
  * POST /api/auth/login
  * body: { email, password }
- */router.post(
+ */
+router.post(
   "/login",
-  body("email").isEmail(),
-  body("password").exists(),
+  validate([
+    body("email").isEmail().withMessage("Valid email required"),
+    body("password").notEmpty().withMessage("Password is required")
+  ]),
   (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
-
     const { email, password } = req.body;
 
     db.get("SELECT * FROM users WHERE email = ?", [email], (err, user) => {
-      if (err) return res.status(500).json({ message: "DB error" });
-      if (!user) return res.status(400).json({ message: "Invalid credentials" });
+      if (err) {
+        console.error("DB error on login:", err);
+        return res.status(500).json({ message: "DB error" });
+      }
+      if (!user) {
+        console.warn("Login failed: user not found for", email);
+        return res.status(400).json({ message: "Invalid credentials" });
+      }
 
-      const ok = require("bcryptjs").compareSync(password, user.password);
-      if (!ok) return res.status(400).json({ message: "Invalid credentials" });
+      const ok = bcrypt.compareSync(password, user.password);
+      if (!ok) {
+        console.warn("Login failed: wrong password for", email);
+        return res.status(400).json({ message: "Invalid credentials" });
+      }
 
       const token = jwt.sign(
         { userId: user.id, email: user.email },
@@ -141,6 +169,7 @@ router.post(
         { expiresIn: "1d" }
       );
 
+      console.log("Login successful for", email);
       res.json({
         message: "Login successful",
         token,
@@ -150,36 +179,37 @@ router.post(
   }
 );
 
-
 /**
  * POST /api/auth/forgot-password-request
  * body: { email }
  */
 router.post(
   "/forgot-password-request",
-  body("email").isEmail(),
+  validate([body("email").isEmail()]),
   (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
-
     const { email } = req.body;
 
-    db.get("SELECT id FROM users WHERE email = ?", [email], (err, user) => {
-      if (err) return res.status(500).json({ message: "DB error" });
+    db.get("SELECT id FROM users WHERE email = ?", [email], (err) => {
+      if (err) {
+        console.error("DB error on forgot-password-request:", err);
+        return res.status(500).json({ message: "DB error" });
+      }
 
-      // Even if user doesn't exist, behave the same to avoid leaking info
       const code = generateOtp();
       const expiresAt = getExpiry(10);
 
       db.run(
         "INSERT INTO otps (email, code, purpose, expires_at) VALUES (?, ?, ?, ?)",
         [email, code, "RESET", expiresAt],
-        async function (err2) {
-          if (err2) return res.status(500).json({ message: "DB error" });
+        async (err2) => {
+          if (err2) {
+            console.error("DB error inserting reset OTP:", err2);
+            return res.status(500).json({ message: "DB error" });
+          }
 
           try {
             await sendOtpEmail({ to: email, otp: code, purpose: "RESET" });
-            console.log("Reset OTP for", email, "=>", code); // debug
+            console.log("Reset OTP for", email, "=>", code);
             return res.json({
               message:
                 "If the email exists, an OTP has been sent to reset the password"
@@ -202,24 +232,28 @@ router.post(
  */
 router.post(
   "/forgot-password-verify",
-  body("email").isEmail(),
-  body("otp").isLength({ min: 4 }),
-  body("newPassword").isLength({ min: 6 }),
+  validate([
+    body("email").isEmail(),
+    body("otp").isLength({ min: 4 }),
+    body("newPassword").isLength({ min: 6 })
+  ]),
   (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
-
     const { email, otp, newPassword } = req.body;
 
     db.get(
       "SELECT * FROM otps WHERE email = ? AND code = ? AND purpose = ? AND used = 0",
       [email, otp, "RESET"],
       (err, otpRow) => {
-        if (err) return res.status(500).json({ message: "DB error" });
-        if (!otpRow) return res.status(400).json({ message: "Invalid OTP" });
+        if (err) {
+          console.error("DB error on reset verify:", err);
+          return res.status(500).json({ message: "DB error" });
+        }
+        if (!otpRow) {
+          return res.status(400).json({ message: "Invalid OTP" });
+        }
 
-        const now = new Date().toISOString();
-        if (otpRow.expires_at < now) {
+        const nowIso = new Date().toISOString();
+        if (otpRow.expires_at < nowIso) {
           return res.status(400).json({ message: "OTP expired" });
         }
 
@@ -229,10 +263,12 @@ router.post(
           "UPDATE users SET password = ? WHERE email = ?",
           [hashed, email],
           function (err2) {
-            if (err2) return res.status(500).json({ message: "DB error" });
+            if (err2) {
+              console.error("DB error updating password:", err2);
+              return res.status(500).json({ message: "DB error" });
+            }
 
             db.run("UPDATE otps SET used = 1 WHERE id = ?", [otpRow.id]);
-
             return res.json({ message: "Password reset successful" });
           }
         );

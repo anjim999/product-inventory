@@ -1,15 +1,32 @@
-import axios from 'axios';
+// src/api/axiosClient.js
+import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000",
+  withCredentials: true
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+api.interceptors.request.use(
+  (config) => {
+    // Don't attach token for auth endpoints
+    if (config.url && config.url.startsWith("/api/auth/")) {
+      return config;
+    }
+
+    const stored = localStorage.getItem("auth");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed.token) {
+          config.headers.Authorization = `Bearer ${parsed.token}`;
+        }
+      } catch (e) {
+        console.error("Failed to parse auth from localStorage", e);
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 export default api;

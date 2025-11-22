@@ -1,37 +1,41 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import api from '../api/axiosClient';
+// src/context/AuthContext.jsx
+import { createContext, useContext, useEffect, useState } from "react";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [auth, setAuth] = useState(null);
 
   useEffect(() => {
-    if (token) {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
+    const stored = localStorage.getItem("auth");
+    if (stored) {
+      try {
+        setAuth(JSON.parse(stored));
+      } catch (e) {
+        console.error("Failed to parse auth from localStorage", e);
+        localStorage.removeItem("auth");
       }
     }
-  }, [token]);
+  }, []);
 
   const login = (data) => {
-    setToken(data.token);
-    setUser(data.user);
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
+    // backend sends: { message, token, user }
+    const payload = {
+      token: data.token,
+      user: data.user
+    };
+    console.log("Saving auth to context:", payload);
+    setAuth(payload);
+    localStorage.setItem("auth", JSON.stringify(payload));
   };
 
   const logout = () => {
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    setAuth(null);
+    localStorage.removeItem("auth");
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider value={{ auth, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
