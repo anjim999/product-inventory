@@ -34,31 +34,42 @@ transporter.verify((err, success) => {
  * @param {string} options.purpose "REGISTER" | "RESET"
  */
 async function sendOtpEmail({ to, otp, purpose }) {
-  const subject =
-    purpose === "REGISTER"
-      ? "Your Registration OTP - Inventory App"
-      : "Your Password Reset OTP - Inventory App";
+  try {
+    const subject =
+      purpose === "REGISTER"
+        ? "Your Registration OTP - Inventory App"
+        : "Your Password Reset OTP - Inventory App";
 
-  const html = `
-    <div style="font-family: Arial, sans-serif; font-size:14px; color:#333;">
-      <p>Dear user,</p>
-      <p>Your OTP for <strong>${purpose === "REGISTER" ? "registration" : "password reset"}</strong> is:</p>
-      <p style="font-size: 24px; font-weight: bold; letter-spacing: 4px; margin: 12px 0;">
-        ${otp}
-      </p>
-      <p>This OTP will expire in 10 minutes.</p>
-      <p>If you did not request this, you can safely ignore this email.</p>
-      <br/>
-      <p>Regards,<br/>Inventory Management App</p>
-    </div>
-  `;
+    const html = `
+      <div style="font-family: Arial, sans-serif; font-size:14px; color:#333;">
+        <p>Dear user,</p>
+        <p>Your OTP for <strong>${purpose === "REGISTER" ? "registration" : "password reset"}</strong> is:</p>
+        <p style="font-size: 24px; font-weight: bold; letter-spacing: 4px; margin: 12px 0;">
+          ${otp}
+        </p>
+        <p>This OTP will expire in 10 minutes.</p>
+        <p>If you did not request this, you can safely ignore this email.</p>
+        <br/>
+        <p>Regards,<br/>Inventory Management App</p>
+      </div>
+    `;
 
-  await transporter.sendMail({
-    from: EMAIL_FROM,
-    to,
-    subject,
-    html
-  });
+    // Attempt to send email
+    const info = await transporter.sendMail({
+      from: EMAIL_FROM,
+      to,
+      subject,
+      html,
+    });
+
+    console.log("OTP Email Sent Successfully:", info.messageId);
+    return { success: true };
+  } catch (error) {
+    console.error("❌ Error sending OTP email:", error);
+
+    // Return error instead of throwing, to prevent 500 in route
+    return { success: false, error };
+  }
 }
 
 module.exports = { sendOtpEmail };

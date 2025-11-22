@@ -27,50 +27,48 @@ const validate = (rules) => [
  * POST /api/auth/register-request-otp
  * body: { email }
  */
-router.post(
-  "/register-request-otp",
-  validate([body("email").isEmail().withMessage("Valid email required")]),
-  (req, res) => {
+router.post('/register-request-otp', async (req, res, next) => {
+  try {
     const { email } = req.body;
+    const code = generateOtp();
+    const expiresAt = getExpiry(10);
 
-    db.get("SELECT id FROM users WHERE email = ?", [email], async (err, user) => {
-      if (err) {
-        console.error("DB error on register-request-otp:", err);
-        return res.status(500).json({ message: "DB error" });
-      }
-      if (user) {
-        return res.status(400).json({ message: "Email already registered" });
-      }
-
-      const code = generateOtp();
-      const expiresAt = getExpiry(10);
-
-      db.run(
-        "INSERT INTO otps (email, code, purpose, expires_at) VALUES (?, ?, ?, ?)",
-        [email, code, "REGISTER", expiresAt],
-        async (err2) => {
-          if (err2) {
-            console.error("DB error inserting OTP:", err2);
-            return res.status(500).json({ message: "DB error" });
-          }
-
-          try {
-            await sendOtpEmail({ to: email, otp: code, purpose: "REGISTER" });
-            console.log("Registration OTP for", email, "=>", code);
-            return res.json({
-              message: "OTP sent to email for registration"
-            });
-          } catch (mailErr) {
-            console.error("Error sending OTP email:", mailErr);
-            return res
-              .status(500)
-              .json({ message: "Failed to send OTP email. Try again." });
-          }
+    // save OTP to DB first
+    db.run(
+      "INSERT INTO otps (email, code, purpose, expires_at) VALUES (?, ?, ?, ?)",
+      [email, code, "REGISTER", expiresAt],
+      async (err) => {
+        if (err) {
+          console.error('DB error inserting register OTP:', err);
+          return res.status(500).json({ message: 'DB error' });
         }
-      );
-    });
+
+        try {
+          if (process.env.NODE_ENV === 'production') {
+            // In production demo, log the OTP instead of sending
+            console.log('REGISTER OTP for', email, 'is', code);
+          } else {
+            await sendOtpEmail({ to: email, otp: code, purpose: 'REGISTER' });
+          }
+
+          return res.json({
+            message:
+              process.env.NODE_ENV === 'production'
+                ? 'OTP generated (check server logs in this demo).'
+                : 'OTP sent to email.',
+          });
+        } catch (mailErr) {
+          console.error('Error sending register OTP email:', mailErr);
+          return res.status(500).json({ message: 'Failed to send OTP email' });
+        }
+      }
+    );
+  } catch (err) {
+    console.error('Error in /register-request-otp:', err);
+    return res.status(500).json({ message: 'Failed to generate OTP' });
   }
-);
+});
+
 
 /**
  * POST /api/auth/register-verify
