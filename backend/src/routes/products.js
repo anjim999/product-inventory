@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const csvParser = require('csv-parser');
 const fs = require('fs');
+const path = require('path');
 const db = require('../db');
 const auth = require('../middleware/auth');
 const upload = require('../middleware/upload');
@@ -11,13 +12,45 @@ const router = express.Router();
 // Protect all routes below with JWT auth
 router.use(auth);
 
+// Low stock threshold
+const LOW_STOCK_THRESHOLD = 5;
+
+/**
+ * Helper: build WHERE + params based on user role & filters
+ */
+function buildProductWhere({ user, search, category, lowStockOnly }) {
+  const params = [];
+  let where = 'WHERE is_deleted = 0';
+
+  if (!user || user.role !== 'admin') {
+    where += ' AND owner_id = ?';
+    params.push(user.userId);
+  }
+
+  if (search) {
+    where += ' AND LOWER(name) LIKE ?';
+    params.push(`%${search.toLowerCase()}%`);
+  }
+
+  if (category) {
+    where += ' AND category = ?';
+    params.push(category);
+  }
+
+  if (lowStockOnly === 'true' || lowStockOnly === true) {
+    where += ' AND stock <= ?';
+    params.push(LOW_STOCK_THRESHOLD);
+  }
+
+  return { where, params };
+}
+
 /**
  * GET /api/products
- * Query: page, limit, search, category, sortBy, sortOrder
- * Returns only products of the logged-in user (owner_id = req.user.userId)
+ * Query: page, limit, search, category, sortBy, sortOrder, lowStockOnly
  */
 router.get('/', (req, res) => {
-  const userId = req.user.userId;
+  const user = req.user;
 
   const {
     page = 1,
@@ -26,6 +59,7 @@ router.get('/', (req, res) => {
     category = '',
     sortBy = 'name',
     sortOrder = 'asc',
+    lowStockOnly = 'false'
   } = req.query;
 
   const allowedSort = ['name', 'stock', 'category', 'brand'];
@@ -33,17 +67,13 @@ router.get('/', (req, res) => {
   const orderDir = sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
   const offset = (Number(page) - 1) * Number(limit);
-  const params = [userId];
-  let where = 'WHERE owner_id = ?';
 
-  if (search) {
-    where += ' AND LOWER(name) LIKE ?';
-    params.push(`%${search.toLowerCase()}%`);
-  }
-  if (category) {
-    where += ' AND category = ?';
-    params.push(category);
-  }
+  const { where, params } = buildProductWhere({
+    user,
+    search,
+    category,
+    lowStockOnly
+  });
 
   const countSql = `SELECT COUNT(*) as total FROM products ${where}`;
   db.get(countSql, params, (err, row) => {
@@ -64,23 +94,59 @@ router.get('/', (req, res) => {
         page: Number(page),
         limit: Number(limit),
         total,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil(total / limit)
       });
     });
   });
 });
 
 /**
+ * GET /api/products/summary
+ * Dashboard summary cards data
+ */
+router.get('/summary', (req, res) => {
+  const user = req.user;
+  const whereBase =
+    user.role === 'admin'
+      ? 'WHERE is_deleted = 0'
+      : 'WHERE is_deleted = 0 AND owner_id = ?';
+  const params = user.role === 'admin' ? [] : [user.userId];
+
+  const sql = `
+    SELECT
+      COUNT(*) AS totalProducts,
+      COALESCE(SUM(stock), 0) AS totalUnits,
+      SUM(CASE WHEN stock = 0 THEN 1 ELSE 0 END) AS outOfStockCount,
+      COUNT(DISTINCT category) AS categoryCount,
+      SUM(CASE WHEN stock <= ? THEN 1 ELSE 0 END) AS lowStockCount
+    FROM products
+    ${whereBase}
+  `;
+
+  db.get(sql, [LOW_STOCK_THRESHOLD, ...params], (err, row) => {
+    if (err) return res.status(500).json({ message: 'DB error' });
+    res.json(row);
+  });
+});
+
+/**
  * GET /api/products/search?name=abc
- * Also per-user
  */
 router.get('/search', (req, res) => {
   const { name = '' } = req.query;
-  const userId = req.user.userId;
+  const user = req.user;
+
+  let where = 'WHERE is_deleted = 0 AND LOWER(name) LIKE ?';
+  const params = [`%${name.toLowerCase()}%`];
+
+  if (user.role !== 'admin') {
+    where += ' AND owner_id = ?';
+    params.push(user.userId);
+  }
 
   db.all(
-    'SELECT * FROM products WHERE owner_id = ? AND LOWER(name) LIKE ?',
-    [userId, `%${name.toLowerCase()}%`],
+    `SELECT * FROM products ${where}`,
+    params,
     (err, rows) => {
       if (err) return res.status(500).json({ message: 'DB error' });
       res.json(rows);
@@ -90,7 +156,6 @@ router.get('/search', (req, res) => {
 
 /**
  * GET /api/products/:id/history
- * (History is global per product, but product belongs to one user)
  */
 router.get('/:id/history', (req, res) => {
   const { id } = req.params;
@@ -107,39 +172,59 @@ router.get('/:id/history', (req, res) => {
 
 /**
  * PUT /api/products/:id
- * Update a product that belongs to the current user
- * (Still uses image from body as string)
+ * Update a product (with optional image upload)
  */
 router.put(
   '/:id',
+  upload.single('image'),
   body('name').notEmpty(),
   body('unit').notEmpty(),
   body('category').notEmpty(),
   body('brand').notEmpty(),
   body('stock').isInt({ min: 0 }),
-  body('status').notEmpty(),
   (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty())
       return res.status(400).json({ errors: errors.array() });
 
     const { id } = req.params;
-    const userId = req.user.userId;
-    const { name, unit, category, brand, stock, status, image } = req.body;
+    const user = req.user;
+    const { name, unit, category, brand, stock, description = '' } = req.body;
+    const file = req.file;
 
-    // Fetch product belonging to this user
+    // Better status logic: derive from stock
+    const stockNum = Number(stock) || 0;
+    const status = stockNum === 0 ? 'Out of Stock' : 'In Stock';
+
+    // Fetch product belonging to this user (unless admin)
+    const params = [id];
+    let where = 'WHERE id = ? AND is_deleted = 0';
+    if (user.role !== 'admin') {
+      where += ' AND owner_id = ?';
+      params.push(user.userId);
+    }
+
     db.get(
-      'SELECT * FROM products WHERE id = ? AND owner_id = ?',
-      [id, userId],
+      `SELECT * FROM products ${where}`,
+      params,
       (err, existing) => {
         if (err) return res.status(500).json({ message: 'DB error' });
         if (!existing)
           return res.status(404).json({ message: 'Product not found' });
 
-        // Unique name per owner
+        // Unique name per owner (or globally for admin)
+        const params2 = [name.toLowerCase()];
+        let where2 = 'WHERE LOWER(name) = ? AND is_deleted = 0';
+        if (user.role !== 'admin') {
+          where2 += ' AND owner_id = ?';
+          params2.push(user.userId);
+        }
+        where2 += ' AND id != ?';
+        params2.push(id);
+
         db.get(
-          'SELECT id FROM products WHERE LOWER(name) = ? AND owner_id = ? AND id != ?',
-          [name.toLowerCase(), userId, id],
+          `SELECT id FROM products ${where2}`,
+          params2,
           (err2, conflict) => {
             if (err2) return res.status(500).json({ message: 'DB error' });
             if (conflict) {
@@ -151,37 +236,48 @@ router.put(
             const now = new Date().toISOString();
 
             // Inventory history if stock changed
-            if (Number(existing.stock) !== Number(stock)) {
+            if (Number(existing.stock) !== stockNum) {
               db.run(
                 `INSERT INTO inventory_logs
                  (product_id, old_stock, new_stock, changed_by, timestamp)
                  VALUES (?, ?, ?, ?, ?)`,
-                [id, existing.stock, stock, req.user?.email || 'admin', now]
+                [
+                  id,
+                  existing.stock,
+                  stockNum,
+                  user?.email || 'admin',
+                  now
+                ]
               );
             }
 
+            const imagePath = file
+              ? `/uploads/${file.filename}`
+              : existing.image;
+
             db.run(
               `UPDATE products
-               SET name = ?, unit = ?, category = ?, brand = ?, stock = ?, status = ?, image = ?, updated_at = ?
-               WHERE id = ? AND owner_id = ?`,
+               SET name = ?, unit = ?, category = ?, brand = ?, stock = ?, status = ?,
+                   image = ?, description = ?, updated_at = ?
+               WHERE id = ?`,
               [
                 name,
                 unit,
                 category,
                 brand,
-                stock,
+                stockNum,
                 status,
-                image || existing.image,
+                imagePath,
+                description,
                 now,
-                id,
-                userId,
+                id
               ],
               function (err3) {
                 if (err3) return res.status(500).json({ message: 'DB error' });
 
                 db.get(
-                  'SELECT * FROM products WHERE id = ? AND owner_id = ?',
-                  [id, userId],
+                  'SELECT * FROM products WHERE id = ?',
+                  [id],
                   (err4, updated) => {
                     if (err4)
                       return res.status(500).json({ message: 'DB error' });
@@ -200,10 +296,9 @@ router.put(
 /**
  * POST /api/products/import
  * multipart/form-data: file (csv)
- * Imports CSV only into current user's products
  */
 router.post('/import', upload.single('file'), (req, res) => {
-  const userId = req.user.userId;
+  const user = req.user;
 
   if (!req.file) return res.status(400).json({ message: 'CSV file required' });
 
@@ -225,18 +320,20 @@ router.post('/import', upload.single('file'), (req, res) => {
             const category = productRow.category || '';
             const brand = productRow.brand || '';
             const stock = parseInt(productRow.stock || '0', 10);
-            const status =
-              productRow.status || (stock > 0 ? 'In Stock' : 'Out of Stock');
+            const status = stock === 0 ? 'Out of Stock' : 'In Stock';
             const image = productRow.image || '';
+            const description = productRow.description || '';
 
             if (!name) {
               skipped++;
               return resolve();
             }
 
+            const where = 'WHERE LOWER(name) = ? AND owner_id = ? AND is_deleted = 0';
+
             db.get(
-              'SELECT id FROM products WHERE LOWER(name) = ? AND owner_id = ?',
-              [name.toLowerCase(), userId],
+              `SELECT id FROM products ${where}`,
+              [name.toLowerCase(), user.userId],
               (err, existing) => {
                 if (err) {
                   skipped++;
@@ -251,10 +348,10 @@ router.post('/import', upload.single('file'), (req, res) => {
                 const now = new Date().toISOString();
                 db.run(
                   `INSERT INTO products
-                   (owner_id, name, unit, category, brand, stock, status, image, created_at, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                   (owner_id, name, unit, category, brand, stock, status, image, description, is_deleted, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
                   [
-                    userId,
+                    user.userId,
                     name,
                     unit,
                     category,
@@ -262,8 +359,9 @@ router.post('/import', upload.single('file'), (req, res) => {
                     stock,
                     status,
                     image,
+                    description,
                     now,
-                    now,
+                    now
                   ],
                   (err2) => {
                     if (err2) {
@@ -288,63 +386,86 @@ router.post('/import', upload.single('file'), (req, res) => {
 
 /**
  * GET /api/products/export
- * Exports only current user's products
  */
 router.get('/export', (req, res) => {
-  const userId = req.user.userId;
+  const user = req.user;
 
-  db.all('SELECT * FROM products WHERE owner_id = ?', [userId], (err, rows) => {
-    if (err) return res.status(500).json({ message: 'DB error' });
+  let where = 'WHERE is_deleted = 0';
+  const params = [];
 
-    const header = 'name,unit,category,brand,stock,status,image\n';
-    const lines = rows.map((p) =>
-      [
-        p.name,
-        p.unit,
-        p.category,
-        p.brand,
-        p.stock,
-        p.status,
-        p.image || '',
-      ]
-        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-        .join(',')
-    );
-    const csv = header + lines.join('\n');
+  if (user.role !== 'admin') {
+    where += ' AND owner_id = ?';
+    params.push(user.userId);
+  }
 
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader(
-      'Content-Disposition',
-      'attachment; filename="products.csv"'
-    );
-    res.send(csv);
-  });
-});
-
-/**
- * DELETE /api/products/:id
- * Deletes only if product belongs to current user
- */
-router.delete('/:id', (req, res) => {
-  const { id } = req.params;
-  const userId = req.user.userId;
-
-  db.run(
-    'DELETE FROM products WHERE id = ? AND owner_id = ?',
-    [id, userId],
-    function (err) {
+  db.all(
+    `SELECT * FROM products ${where}`,
+    params,
+    (err, rows) => {
       if (err) return res.status(500).json({ message: 'DB error' });
-      if (this.changes === 0)
-        return res.status(404).json({ message: 'Not found' });
-      res.json({ message: 'Deleted' });
+
+      const header = 'name,unit,category,brand,stock,status,image,description\n';
+      const lines = rows.map((p) =>
+        [
+          p.name,
+          p.unit,
+          p.category,
+          p.brand,
+          p.stock,
+          p.status,
+          p.image || '',
+          p.description || ''
+        ]
+          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+          .join(',')
+      );
+      const csv = header + lines.join('\n');
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader(
+        'Content-Disposition',
+        'attachment; filename="products.csv"'
+      );
+      res.send(csv);
     }
   );
 });
 
 /**
+ * DELETE /api/products/:id
+ * Soft delete: set is_deleted = 1
+ */
+/**
+ * DELETE /api/products/:id
+ * Hard delete: removes row from DB
+ * - Admin: can delete any product
+ * - Normal user: can delete only own products
+ */
+router.delete('/:id', (req, res) => {
+  const { id } = req.params;
+  const user = req.user;
+
+  let sql = 'DELETE FROM products WHERE id = ?';
+  const params = [id];
+
+  if (user.role !== 'admin') {
+    sql += ' AND owner_id = ?';
+    params.push(user.userId);
+  }
+
+  db.run(sql, params, function (err) {
+    if (err) return res.status(500).json({ message: 'DB error' });
+    if (this.changes === 0) {
+      return res.status(404).json({ message: 'Not found' });
+    }
+    res.json({ message: 'Deleted' });
+  });
+});
+
+
+/**
  * POST /api/products
- * Add New Product for the current user
- * Accepts multipart/form-data (optional image/pdf file as "image")
+ * Add New Product (multipart, optional image/pdf file as "image")
  */
 router.post(
   '/',
@@ -354,25 +475,35 @@ router.post(
   body('category').notEmpty(),
   body('brand').notEmpty(),
   body('stock').isInt({ min: 0 }),
-  body('status').notEmpty(),
   (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const userId = req.user.userId;
-    const { name, unit, category, brand, stock, status } = req.body;
+    const user = req.user;
+    const { name, unit, category, brand, stock, description = '' } = req.body;
     const file = req.file;
 
-    // Store relative path or filename
-    const imagePath = file ? `/uploads/${file.filename}` : '';
+    const stockNum = Number(stock) || 0;
+    const status = stockNum === 0 ? 'Out of Stock' : 'In Stock';
 
+    const imagePath = file ? `/uploads/${file.filename}` : '';
     const now = new Date().toISOString();
 
+    const where =
+      user.role === 'admin'
+        ? 'WHERE LOWER(name) = ? AND is_deleted = 0'
+        : 'WHERE LOWER(name) = ? AND owner_id = ? AND is_deleted = 0';
+
+    const params =
+      user.role === 'admin'
+        ? [name.toLowerCase()]
+        : [name.toLowerCase(), user.userId];
+
     db.get(
-      'SELECT id FROM products WHERE LOWER(name) = ? AND owner_id = ?',
-      [name.toLowerCase(), userId],
+      `SELECT id FROM products ${where}`,
+      params,
       (err, existing) => {
         if (err) return res.status(500).json({ message: 'DB error' });
         if (existing) {
@@ -383,15 +514,27 @@ router.post(
 
         db.run(
           `INSERT INTO products
-           (owner_id, name, unit, category, brand, stock, status, image, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [userId, name, unit, category, brand, stock, status, imagePath, now, now],
+           (owner_id, name, unit, category, brand, stock, status, image, description, is_deleted, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+          [
+            user.userId,
+            name,
+            unit,
+            category,
+            brand,
+            stockNum,
+            status,
+            imagePath,
+            description,
+            now,
+            now
+          ],
           function (err2) {
             if (err2) return res.status(500).json({ message: 'DB error' });
 
             db.get(
-              'SELECT * FROM products WHERE id = ? AND owner_id = ?',
-              [this.lastID, userId],
+              'SELECT * FROM products WHERE id = ?',
+              [this.lastID],
               (err3, row) => {
                 if (err3) return res.status(500).json({ message: 'DB error' });
                 res.status(201).json(row);

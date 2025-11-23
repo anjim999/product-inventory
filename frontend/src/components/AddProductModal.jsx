@@ -9,8 +9,8 @@ export default function AddProductModal({ onAdded }) {
     category: '',
     brand: '',
     stock: 0,
-    status: 'In Stock',
-    image: null
+    image: null,
+    description: ''
   });
 
   const handleChange = (field, value) => {
@@ -26,7 +26,7 @@ export default function AddProductModal({ onAdded }) {
       formData.append('category', form.category);
       formData.append('brand', form.brand);
       formData.append('stock', form.stock);
-      formData.append('status', form.status);
+      formData.append('description', form.description || '');
       if (form.image) {
         formData.append('image', form.image);
       }
@@ -40,8 +40,8 @@ export default function AddProductModal({ onAdded }) {
         category: '',
         brand: '',
         stock: 0,
-        status: 'In Stock',
-        image: null
+        image: null,
+        description: ''
       });
     } catch (err) {
       alert(err.response?.data?.message || 'Error adding product');
@@ -64,7 +64,9 @@ export default function AddProductModal({ onAdded }) {
             <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-3">
               {['name', 'unit', 'category', 'brand'].map((field) => (
                 <div key={field} className="col-span-1">
-                  <label className="block text-xs mb-1 capitalize">{field}</label>
+                  <label className="block text-xs mb-1 capitalize">
+                    {field}
+                  </label>
                   <input
                     className="w-full border rounded px-2 py-1 text-sm"
                     value={form[field]}
@@ -73,6 +75,16 @@ export default function AddProductModal({ onAdded }) {
                   />
                 </div>
               ))}
+
+              <div className="col-span-2">
+                <label className="block text-xs mb-1">Description / Notes</label>
+                <textarea
+                  className="w-full border rounded px-2 py-1 text-sm"
+                  rows={3}
+                  value={form.description}
+                  onChange={(e) => handleChange('description', e.target.value)}
+                />
+              </div>
 
               <div className="col-span-2">
                 <label className="block text-xs mb-1">Image / PDF</label>
@@ -93,20 +105,14 @@ export default function AddProductModal({ onAdded }) {
                   min="0"
                   className="w-full border rounded px-2 py-1 text-sm"
                   value={form.stock}
-                  onChange={(e) => handleChange('stock', Number(e.target.value))}
+                  onChange={(e) =>
+                    handleChange('stock', Number(e.target.value) || 0)
+                  }
                 />
               </div>
-              <div>
-                <label className="block text-xs mb-1">Status</label>
-                <select
-                  className="w-full border rounded px-2 py-1 text-sm"
-                  value={form.status}
-                  onChange={(e) => handleChange('status', e.target.value)}
-                >
-                  <option>In Stock</option>
-                  <option>Out of Stock</option>
-                </select>
-              </div>
+
+              {/* Status is derived on backend, so no manual status input */}
+
               <div className="col-span-2 flex justify-end gap-2 mt-2">
                 <button
                   type="button"

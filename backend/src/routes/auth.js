@@ -27,10 +27,6 @@ const validate = (rules) => [
  * POST /api/auth/register-request-otp
  * body: { email }
  */
-/**
- * POST /api/auth/register-request-otp
- * body: { email }
- */
 router.post('/register-request-otp', async (req, res) => {
   try {
     const { email } = req.body;
@@ -46,7 +42,6 @@ router.post('/register-request-otp', async (req, res) => {
           return res.status(500).json({ message: 'DB error' });
         }
 
-        // Try to send email, but do NOT fail the whole request if Resend blocks it
         const mailResult = await sendOtpEmail({
           to: email,
           otp: code,
@@ -55,14 +50,13 @@ router.post('/register-request-otp', async (req, res) => {
 
         if (!mailResult.success) {
           console.warn(
-            'OTP email not delivered (Resend sandbox or other issue). OTP is logged on server only.'
+            'OTP email not delivered (Brevo issue). OTP is logged on server only.'
           );
         }
 
         return res.json({
           message:
-            "OTP generated. If email doesn't arrive (sandbox), use the OTP from server logs.",
-          // For local development, you can expose OTP to frontend for easier testing:
+            "OTP generated. If email doesn't arrive, use the OTP from server logs.",
           devOtp: process.env.NODE_ENV !== 'production' ? code : undefined
         });
       }
@@ -73,12 +67,6 @@ router.post('/register-request-otp', async (req, res) => {
   }
 });
 
-
-
-/**
- * POST /api/auth/register-verify
- * body: { email, otp, password }
- */
 /**
  * POST /api/auth/register-verify
  * body: { name, email, otp, password }
@@ -126,10 +114,10 @@ router.post(
             db.run("UPDATE otps SET used = 1 WHERE id = ?", [otpRow.id]);
 
             const userId = this.lastID;
+            const role = 'user'; // new users are normal users
 
-            // Include name in token
             const token = jwt.sign(
-              { userId, email, name },
+              { userId, email, name, role },
               JWT_SECRET,
               { expiresIn: "1d" }
             );
@@ -137,7 +125,7 @@ router.post(
             return res.json({
               message: "Registration successful",
               token,
-              user: { id: userId, name, email }
+              user: { id: userId, name, email, role }
             });
           }
         );
@@ -176,7 +164,12 @@ router.post(
       }
 
       const token = jwt.sign(
-        { userId: user.id, email: user.email },
+        {
+          userId: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role || 'user'
+        },
         JWT_SECRET,
         { expiresIn: "1d" }
       );
@@ -185,7 +178,12 @@ router.post(
       res.json({
         message: "Login successful",
         token,
-        user: { id: user.id, email: user.email }
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role || 'user'
+        }
       });
     });
   }

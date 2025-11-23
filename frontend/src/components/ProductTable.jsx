@@ -4,10 +4,10 @@ import api from '../api/axiosClient';
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
+const LOW_STOCK_THRESHOLD = 5;
+
 function resolveImageUrl(image) {
   if (!image) return null;
-
-  // If it's already an absolute URL or data URL, just use it
   if (
     image.startsWith('http://') ||
     image.startsWith('https://') ||
@@ -15,13 +15,9 @@ function resolveImageUrl(image) {
   ) {
     return image;
   }
-
-  // If backend stores like "/uploads/xyz.png"
   if (image.startsWith('/')) {
     return `${API_BASE_URL}${image}`;
   }
-
-  // Fallback: no leading slash
   return `${API_BASE_URL}/${image}`;
 }
 
@@ -38,7 +34,10 @@ export default function ProductTable({
 
   const startEdit = (product) => {
     setEditingId(product.id);
-    setEditForm(product);
+    setEditForm({
+      ...product,
+      imageFile: null
+    });
   };
 
   const cancelEdit = () => {
@@ -52,7 +51,24 @@ export default function ProductTable({
 
   const saveEdit = async () => {
     try {
-      await api.put(`/api/products/${editingId}`, editForm);
+      const formData = new FormData();
+      formData.append('name', editForm.name);
+      formData.append('unit', editForm.unit);
+      formData.append('category', editForm.category);
+      formData.append('brand', editForm.brand);
+      formData.append('stock', editForm.stock);
+      formData.append('description', editForm.description || '');
+
+      if (editForm.imageFile) {
+        formData.append('image', editForm.imageFile);
+      }
+
+      await api.put(`/api/products/${editingId}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
       setEditingId(null);
       onReload();
     } catch (err) {
@@ -127,8 +143,12 @@ export default function ProductTable({
           {products.map((p) => {
             const isEditing = editingId === p.id;
             const data = isEditing ? editForm : p;
+
+            const stockNum = Number(data.stock) || 0;
+            const isLowStock = stockNum <= LOW_STOCK_THRESHOLD;
+
             const statusLabel =
-              data.stock === 0 || data.status === 'Out of Stock'
+              stockNum === 0 || data.status === 'Out of Stock'
                 ? { text: 'Out of Stock', className: 'bg-red-100 text-red-700' }
                 : { text: 'In Stock', className: 'bg-green-100 text-green-700' };
 
@@ -137,7 +157,9 @@ export default function ProductTable({
             return (
               <tr
                 key={p.id}
-                className="border-t hover:bg-slate-50"
+                className={`border-t hover:bg-slate-50 ${
+                  isLowStock ? 'bg-orange-50' : ''
+                }`}
                 onClick={() => handleRowClick(p)}
               >
                 <td className="px-3 py-2">
@@ -159,7 +181,14 @@ export default function ProductTable({
                       onChange={(e) => handleChange('name', e.target.value)}
                     />
                   ) : (
-                    data.name
+                    <div className="flex items-center gap-2">
+                      <span>{data.name}</span>
+                      {isLowStock && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-200 text-orange-800">
+                          Low stock
+                        </span>
+                      )}
+                    </div>
                   )}
                 </td>
                 <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
@@ -201,13 +230,13 @@ export default function ProductTable({
                       type="number"
                       min="0"
                       className="border rounded px-2 py-1 text-xs w-20"
-                      value={data.stock}
+                      value={stockNum}
                       onChange={(e) =>
                         handleChange('stock', Number(e.target.value) || 0)
                       }
                     />
                   ) : (
-                    data.stock
+                    stockNum
                   )}
                 </td>
                 <td className="px-3 py-2">
@@ -250,6 +279,22 @@ export default function ProductTable({
                       >
                         Cancel
                       </button>
+                      <div className="mt-2">
+                        <label className="block text-[10px] mb-0.5">
+                          Change Image
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          className="w-full border rounded px-1 py-0.5 text-[10px]"
+                          onChange={(e) =>
+                            handleChange(
+                              'imageFile',
+                              e.target.files?.[0] || null
+                            )
+                          }
+                        />
+                      </div>
                     </>
                   )}
                 </td>

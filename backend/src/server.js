@@ -7,7 +7,7 @@ require('./db');
 
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
-
+const adminRoutes = require('./routes/admin');
 const app = express();
 
 const allowedOrigins = [
@@ -51,7 +51,7 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
-
+app.use('/api/admin', adminRoutes);
 app.use(errorHandler);
 
 app.listen(PORT, () => {
