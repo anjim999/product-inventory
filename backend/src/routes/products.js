@@ -25,7 +25,7 @@ router.get('/', (req, res) => {
     search = '',
     category = '',
     sortBy = 'name',
-    sortOrder = 'asc'
+    sortOrder = 'asc',
   } = req.query;
 
   const allowedSort = ['name', 'stock', 'category', 'brand'];
@@ -64,7 +64,7 @@ router.get('/', (req, res) => {
         page: Number(page),
         limit: Number(limit),
         total,
-        totalPages: Math.ceil(total / limit)
+        totalPages: Math.ceil(total / limit),
       });
     });
   });
@@ -108,6 +108,7 @@ router.get('/:id/history', (req, res) => {
 /**
  * PUT /api/products/:id
  * Update a product that belongs to the current user
+ * (Still uses image from body as string)
  */
 router.put(
   '/:id',
@@ -119,7 +120,8 @@ router.put(
   body('status').notEmpty(),
   (req, res) => {
     const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+    if (!errors.isEmpty())
+      return res.status(400).json({ errors: errors.array() });
 
     const { id } = req.params;
     const userId = req.user.userId;
@@ -131,7 +133,8 @@ router.put(
       [id, userId],
       (err, existing) => {
         if (err) return res.status(500).json({ message: 'DB error' });
-        if (!existing) return res.status(404).json({ message: 'Product not found' });
+        if (!existing)
+          return res.status(404).json({ message: 'Product not found' });
 
         // Unique name per owner
         db.get(
@@ -140,7 +143,9 @@ router.put(
           (err2, conflict) => {
             if (err2) return res.status(500).json({ message: 'DB error' });
             if (conflict) {
-              return res.status(400).json({ message: 'Product name must be unique' });
+              return res
+                .status(400)
+                .json({ message: 'Product name must be unique' });
             }
 
             const now = new Date().toISOString();
@@ -151,13 +156,7 @@ router.put(
                 `INSERT INTO inventory_logs
                  (product_id, old_stock, new_stock, changed_by, timestamp)
                  VALUES (?, ?, ?, ?, ?)`,
-                [
-                  id,
-                  existing.stock,
-                  stock,
-                  req.user?.email || 'admin',
-                  now
-                ]
+                [id, existing.stock, stock, req.user?.email || 'admin', now]
               );
             }
 
@@ -175,7 +174,7 @@ router.put(
                 image || existing.image,
                 now,
                 id,
-                userId
+                userId,
               ],
               function (err3) {
                 if (err3) return res.status(500).json({ message: 'DB error' });
@@ -184,7 +183,8 @@ router.put(
                   'SELECT * FROM products WHERE id = ? AND owner_id = ?',
                   [id, userId],
                   (err4, updated) => {
-                    if (err4) return res.status(500).json({ message: 'DB error' });
+                    if (err4)
+                      return res.status(500).json({ message: 'DB error' });
                     res.json(updated);
                   }
                 );
@@ -225,7 +225,8 @@ router.post('/import', upload.single('file'), (req, res) => {
             const category = productRow.category || '';
             const brand = productRow.brand || '';
             const stock = parseInt(productRow.stock || '0', 10);
-            const status = productRow.status || (stock > 0 ? 'In Stock' : 'Out of Stock');
+            const status =
+              productRow.status || (stock > 0 ? 'In Stock' : 'Out of Stock');
             const image = productRow.image || '';
 
             if (!name) {
@@ -252,7 +253,18 @@ router.post('/import', upload.single('file'), (req, res) => {
                   `INSERT INTO products
                    (owner_id, name, unit, category, brand, stock, status, image, created_at, updated_at)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                  [userId, name, unit, category, brand, stock, status, image, now, now],
+                  [
+                    userId,
+                    name,
+                    unit,
+                    category,
+                    brand,
+                    stock,
+                    status,
+                    image,
+                    now,
+                    now,
+                  ],
                   (err2) => {
                     if (err2) {
                       skipped++;
@@ -293,7 +305,7 @@ router.get('/export', (req, res) => {
         p.brand,
         p.stock,
         p.status,
-        p.image || ''
+        p.image || '',
       ]
         .map((v) => `"${String(v).replace(/"/g, '""')}"`)
         .join(',')
@@ -301,7 +313,10 @@ router.get('/export', (req, res) => {
     const csv = header + lines.join('\n');
 
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="products.csv"');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="products.csv"'
+    );
     res.send(csv);
   });
 });
@@ -319,7 +334,8 @@ router.delete('/:id', (req, res) => {
     [id, userId],
     function (err) {
       if (err) return res.status(500).json({ message: 'DB error' });
-      if (this.changes === 0) return res.status(404).json({ message: 'Not found' });
+      if (this.changes === 0)
+        return res.status(404).json({ message: 'Not found' });
       res.json({ message: 'Deleted' });
     }
   );
@@ -328,9 +344,11 @@ router.delete('/:id', (req, res) => {
 /**
  * POST /api/products
  * Add New Product for the current user
+ * Accepts multipart/form-data (optional image/pdf file as "image")
  */
 router.post(
   '/',
+  upload.single('image'),
   body('name').notEmpty(),
   body('unit').notEmpty(),
   body('category').notEmpty(),
@@ -339,10 +357,17 @@ router.post(
   body('status').notEmpty(),
   (req, res) => {
     const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
 
     const userId = req.user.userId;
-    const { name, unit, category, brand, stock, status, image } = req.body;
+    const { name, unit, category, brand, stock, status } = req.body;
+    const file = req.file;
+
+    // Store relative path or filename
+    const imagePath = file ? `/uploads/${file.filename}` : '';
+
     const now = new Date().toISOString();
 
     db.get(
@@ -350,13 +375,17 @@ router.post(
       [name.toLowerCase(), userId],
       (err, existing) => {
         if (err) return res.status(500).json({ message: 'DB error' });
-        if (existing) return res.status(400).json({ message: 'Name must be unique for this user' });
+        if (existing) {
+          return res
+            .status(400)
+            .json({ message: 'Name must be unique for this user' });
+        }
 
         db.run(
           `INSERT INTO products
            (owner_id, name, unit, category, brand, stock, status, image, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [userId, name, unit, category, brand, stock, status, image || '', now, now],
+          [userId, name, unit, category, brand, stock, status, imagePath, now, now],
           function (err2) {
             if (err2) return res.status(500).json({ message: 'DB error' });
 

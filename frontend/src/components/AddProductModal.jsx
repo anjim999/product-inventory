@@ -10,7 +10,7 @@ export default function AddProductModal({ onAdded }) {
     brand: '',
     stock: 0,
     status: 'In Stock',
-    image: ''
+    image: null
   });
 
   const handleChange = (field, value) => {
@@ -20,7 +20,18 @@ export default function AddProductModal({ onAdded }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/api/products', form);
+      const formData = new FormData();
+      formData.append('name', form.name);
+      formData.append('unit', form.unit);
+      formData.append('category', form.category);
+      formData.append('brand', form.brand);
+      formData.append('stock', form.stock);
+      formData.append('status', form.status);
+      if (form.image) {
+        formData.append('image', form.image);
+      }
+
+      await api.post('/api/products', formData);
       onAdded();
       setOpen(false);
       setForm({
@@ -30,7 +41,7 @@ export default function AddProductModal({ onAdded }) {
         brand: '',
         stock: 0,
         status: 'In Stock',
-        image: ''
+        image: null
       });
     } catch (err) {
       alert(err.response?.data?.message || 'Error adding product');
@@ -51,17 +62,30 @@ export default function AddProductModal({ onAdded }) {
           <div className="bg-white rounded-xl shadow p-5 w-full max-w-lg">
             <h2 className="text-lg font-semibold mb-4">Add Product</h2>
             <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-3">
-              {['name', 'unit', 'category', 'brand', 'image'].map((field) => (
+              {['name', 'unit', 'category', 'brand'].map((field) => (
                 <div key={field} className="col-span-1">
                   <label className="block text-xs mb-1 capitalize">{field}</label>
                   <input
                     className="w-full border rounded px-2 py-1 text-sm"
                     value={form[field]}
                     onChange={(e) => handleChange(field, e.target.value)}
-                    required={['name', 'unit', 'category', 'brand'].includes(field)}
+                    required
                   />
                 </div>
               ))}
+
+              <div className="col-span-2">
+                <label className="block text-xs mb-1">Image / PDF</label>
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  className="w-full border rounded px-2 py-1 text-sm"
+                  onChange={(e) =>
+                    handleChange('image', e.target.files?.[0] || null)
+                  }
+                />
+              </div>
+
               <div>
                 <label className="block text-xs mb-1">Stock</label>
                 <input

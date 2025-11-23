@@ -1,6 +1,30 @@
 import { useState } from 'react';
 import api from '../api/axiosClient';
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+
+function resolveImageUrl(image) {
+  if (!image) return null;
+
+  // If it's already an absolute URL or data URL, just use it
+  if (
+    image.startsWith('http://') ||
+    image.startsWith('https://') ||
+    image.startsWith('data:')
+  ) {
+    return image;
+  }
+
+  // If backend stores like "/uploads/xyz.png"
+  if (image.startsWith('/')) {
+    return `${API_BASE_URL}${image}`;
+  }
+
+  // Fallback: no leading slash
+  return `${API_BASE_URL}/${image}`;
+}
+
 export default function ProductTable({
   products,
   onReload,
@@ -70,7 +94,10 @@ export default function ProductTable({
         <thead className="bg-slate-50">
           <tr>
             <th className="px-3 py-2 text-left">Image</th>
-            <th className="px-3 py-2 text-left cursor-pointer" onClick={() => toggleSort('name')}>
+            <th
+              className="px-3 py-2 text-left cursor-pointer"
+              onClick={() => toggleSort('name')}
+            >
               Name {renderSortIcon('name')}
             </th>
             <th className="px-3 py-2 text-left">Unit</th>
@@ -105,6 +132,8 @@ export default function ProductTable({
                 ? { text: 'Out of Stock', className: 'bg-red-100 text-red-700' }
                 : { text: 'In Stock', className: 'bg-green-100 text-green-700' };
 
+            const imgSrc = resolveImageUrl(data.image);
+
             return (
               <tr
                 key={p.id}
@@ -112,8 +141,12 @@ export default function ProductTable({
                 onClick={() => handleRowClick(p)}
               >
                 <td className="px-3 py-2">
-                  {data.image ? (
-                    <img src={data.image} alt={data.name} className="w-10 h-10 object-cover" />
+                  {imgSrc ? (
+                    <img
+                      src={imgSrc}
+                      alt={data.name}
+                      className="w-10 h-10 object-cover rounded border"
+                    />
                   ) : (
                     <div className="w-10 h-10 bg-slate-200 rounded" />
                   )}
@@ -225,7 +258,10 @@ export default function ProductTable({
           })}
           {products.length === 0 && (
             <tr>
-              <td colSpan={8} className="px-3 py-4 text-center text-sm text-slate-500">
+              <td
+                colSpan={8}
+                className="px-3 py-4 text-center text-sm text-slate-500"
+              >
                 No products found.
               </td>
             </tr>

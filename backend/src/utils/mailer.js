@@ -1,33 +1,72 @@
-const nodemailer = require("nodemailer");
-const {
-  BREVO_HOST,
-  BREVO_PORT,
-  BREVO_USER,
-  BREVO_PASS,
-  EMAIL_FROM
-} = require("../config/env");
+// const nodemailer = require("nodemailer");
+// const {
+//   BREVO_HOST,
+//   BREVO_PORT,
+//   BREVO_USER,
+//   BREVO_PASS,
+//   EMAIL_FROM
+// } = require("../config/env");
 
-const transporter = nodemailer.createTransport({
-  host: BREVO_HOST || "smtp-relay.brevo.com",
-  port: Number(BREVO_PORT) || 587,
-  secure: false,
-  auth: {
-    user: BREVO_USER,
-    pass: BREVO_PASS,
-  },
-});
+// const transporter = nodemailer.createTransport({
+//   host: BREVO_HOST || "smtp-relay.brevo.com",
+//   port: Number(BREVO_PORT) || 587,
+//   secure: false,
+//   auth: {
+//     user: BREVO_USER,
+//     pass: BREVO_PASS,
+//   },
+// });
+
+// /**
+//  * Send OTP email via Brevo SMTP
+//  */
+// async function sendOtpEmail({ to, otp, purpose }) {
+//   try {
+//     const subject =
+//       purpose === "REGISTER"
+//         ? "Your Registration OTP - Inventory App"
+//         : "Your Password Reset OTP - Inventory App";
+
+//     const html = `
+//       <div style="font-family: Arial; font-size:14px; color:#333;">
+//         <p><strong>Your OTP:</strong></p>
+//         <h2 style="letter-spacing:4px">${otp}</h2>
+//         <p>This OTP is valid for 10 minutes.</p>
+//       </div>
+//     `;
+
+//     const info = await transporter.sendMail({
+//       from: EMAIL_FROM,
+//       to,
+//       subject,
+//       html,
+//     });
+
+//     console.log("📧 OTP Email sent via Brevo:", info.messageId);
+//     return { success: true };
+//   } catch (error) {
+//     console.error("❌ Error sending Brevo email:", error);
+//     return { success: false, error };
+//   }
+// }
+
+// module.exports = { sendOtpEmail };
+
+
+// backend/src/utils/mailer.js
+const { BREVO_API_KEY, EMAIL_FROM } = require('../config/env');
 
 /**
- * Send OTP email via Brevo SMTP
+ * Send OTP email via Brevo HTTP API
  */
 async function sendOtpEmail({ to, otp, purpose }) {
   try {
     const subject =
-      purpose === "REGISTER"
-        ? "Your Registration OTP - Inventory App"
-        : "Your Password Reset OTP - Inventory App";
+      purpose === 'REGISTER'
+        ? 'Your Registration OTP - Inventory App'
+        : 'Your Password Reset OTP - Inventory App';
 
-    const html = `
+    const htmlContent = `
       <div style="font-family: Arial; font-size:14px; color:#333;">
         <p><strong>Your OTP:</strong></p>
         <h2 style="letter-spacing:4px">${otp}</h2>
@@ -35,17 +74,44 @@ async function sendOtpEmail({ to, otp, purpose }) {
       </div>
     `;
 
-    const info = await transporter.sendMail({
-      from: EMAIL_FROM,
-      to,
+    // Brevo expects "name <email>" or just email for sender
+    const [senderName, senderEmailRaw] = EMAIL_FROM.includes('<')
+      ? EMAIL_FROM.split('<')
+      : [null, EMAIL_FROM];
+
+    const sender = {
+      email: senderEmailRaw.replace('>', '').trim(),
+      ...(senderName ? { name: senderName.trim() } : {}),
+    };
+
+    const body = {
+      sender,
+      to: [{ email: to }],
       subject,
-      html,
+      htmlContent,
+    };
+
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': BREVO_API_KEY,
+      },
+      body: JSON.stringify(body),
     });
 
-    console.log("📧 OTP Email sent via Brevo:", info.messageId);
+    if (!res.ok) {
+      const text = await res.text();
+      console.error('❌ Brevo API error:', res.status, text);
+      return { success: false, error: new Error(`Brevo API ${res.status}`) };
+    }
+
+    const data = await res.json();
+    console.log('📧 OTP Email sent via Brevo API:', data.messageId || data);
+
     return { success: true };
   } catch (error) {
-    console.error("❌ Error sending Brevo email:", error);
+    console.error('❌ Error sending Brevo email via API:', error);
     return { success: false, error };
   }
 }

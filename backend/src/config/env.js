@@ -24,20 +24,37 @@
 
 
 
-require("dotenv").config();
+// backend/src/config/env.js
+const path = require('path');
+require('dotenv').config({
+  path: path.join(__dirname, '..', '..', '.env'),
+});
 
 module.exports = {
-  PORT: process.env.PORT,
+  PORT: process.env.PORT || 5000,
   JWT_SECRET: process.env.JWT_SECRET,
-
-  // Brevo SMTP
-  BREVO_HOST: process.env.BREVO_HOST,
-  BREVO_PORT: process.env.BREVO_PORT,
-  BREVO_USER: process.env.BREVO_USER,
-  BREVO_PASS: process.env.BREVO_PASS,
   EMAIL_FROM: process.env.EMAIL_FROM,
-  JWT_SECRET: process.env.JWT_SECRET,
 
+  // Brevo HTTP API
+  BREVO_API_KEY: process.env.BREVO_API_KEY,
 };
+
+
+
+// require("dotenv").config();
+
+// module.exports = {
+//   PORT: process.env.PORT,
+//   JWT_SECRET: process.env.JWT_SECRET,
+
+//   // Brevo SMTP
+//   BREVO_HOST: process.env.BREVO_HOST,
+//   BREVO_PORT: process.env.BREVO_PORT,
+//   BREVO_USER: process.env.BREVO_USER,
+//   BREVO_PASS: process.env.BREVO_PASS,
+//   EMAIL_FROM: process.env.EMAIL_FROM,
+//   JWT_SECRET: process.env.JWT_SECRET,
+
+// };
 
 

@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path'); // 👈 added
 const { PORT } = require('./config/env');
 const errorHandler = require('./middleware/errorHandler');
 require('./db');
@@ -11,7 +12,7 @@ const app = express();
 
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://product-inventory-nu.vercel.app' // 👈 removed trailing slash
+  'https://product-inventory-nu.vercel.app' // 👈 no trailing slash
 ];
 
 const corsOptions = {
@@ -34,7 +35,15 @@ app.use(cors(corsOptions));
 // Handle preflight for all routes using SAME options
 app.options('*', cors(corsOptions));
 
+// For JSON bodies
 app.use(express.json());
+
+// (Optional but nice) for urlencoded forms
+app.use(express.urlencoded({ extended: true }));
+
+// 👇 Serve uploaded files (images / pdfs) at /uploads/...
+// upload.js stores in ../../uploads (project root /uploads)
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 app.get('/', (req, res) => {
   res.json({ message: 'Inventory API running' });
