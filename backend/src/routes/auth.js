@@ -23,13 +23,18 @@ const validate = (rules) => [
   }
 ];
 
+// small helper for email normalization (avoids case / whitespace issues)
+const normalizeEmail = (email) => email.trim().toLowerCase();
+
 /**
  * POST /api/auth/register-request-otp
  * body: { email }
  */
-router.post('/register-request-otp', async (req, res) => {
+router.post("/register-request-otp", async (req, res) => {
   try {
-    const { email } = req.body;
+    const rawEmail = req.body.email || "";
+    const email = normalizeEmail(rawEmail);
+
     const code = generateOtp();
     const expiresAt = getExpiry(10);
 
@@ -38,32 +43,32 @@ router.post('/register-request-otp', async (req, res) => {
       [email, code, "REGISTER", expiresAt],
       async (err) => {
         if (err) {
-          console.error('DB error inserting register OTP:', err);
-          return res.status(500).json({ message: 'DB error' });
+          console.error("DB error inserting register OTP:", err);
+          return res.status(500).json({ message: "DB error" });
         }
 
         const mailResult = await sendOtpEmail({
           to: email,
           otp: code,
-          purpose: 'REGISTER'
+          purpose: "REGISTER"
         });
 
         if (!mailResult.success) {
           console.warn(
-            'OTP email not delivered (Brevo issue). OTP is logged on server only.'
+            "OTP email not delivered (Brevo issue). OTP is logged on server only."
           );
         }
 
         return res.json({
           message:
             "OTP generated. If email doesn't arrive, use the OTP from server logs.",
-          devOtp: process.env.NODE_ENV !== 'production' ? code : undefined
+          devOtp: process.env.NODE_ENV !== "production" ? code : undefined
         });
       }
     );
   } catch (err) {
-    console.error('Error in /register-request-otp:', err);
-    return res.status(500).json({ message: 'Failed to generate OTP' });
+    console.error("Error in /register-request-otp:", err);
+    return res.status(500).json({ message: "Failed to generate OTP" });
   }
 });
 
@@ -80,7 +85,8 @@ router.post(
     body("password").isLength({ min: 6 })
   ]),
   (req, res) => {
-    const { name, email, otp, password } = req.body;
+    const { name, email: rawEmail, otp, password } = req.body;
+    const email = normalizeEmail(rawEmail);
 
     db.get(
       "SELECT * FROM otps WHERE email = ? AND code = ? AND purpose = ? AND used = 0",
@@ -114,7 +120,7 @@ router.post(
             db.run("UPDATE otps SET used = 1 WHERE id = ?", [otpRow.id]);
 
             const userId = this.lastID;
-            const role = 'user'; // new users are normal users
+            const role = "user"; // new users are normal users
 
             const token = jwt.sign(
               { userId, email, name, role },
@@ -145,7 +151,9 @@ router.post(
     body("password").notEmpty().withMessage("Password is required")
   ]),
   (req, res) => {
-    const { email, password } = req.body;
+    const rawEmail = req.body.email || "";
+    const email = normalizeEmail(rawEmail);
+    const { password } = req.body;
 
     db.get("SELECT * FROM users WHERE email = ?", [email], (err, user) => {
       if (err) {
@@ -168,7 +176,7 @@ router.post(
           userId: user.id,
           email: user.email,
           name: user.name,
-          role: user.role || 'user'
+          role: user.role || "user"
         },
         JWT_SECRET,
         { expiresIn: "1d" }
@@ -182,7 +190,7 @@ router.post(
           id: user.id,
           name: user.name,
           email: user.email,
-          role: user.role || 'user'
+          role: user.role || "user"
         }
       });
     });
@@ -197,42 +205,62 @@ router.post(
   "/forgot-password-request",
   validate([body("email").isEmail()]),
   (req, res) => {
-    const { email } = req.body;
+    const rawEmail = req.body.email || "";
+    const email = normalizeEmail(rawEmail);
 
-    db.get("SELECT id FROM users WHERE email = ?", [email], (err) => {
-      if (err) {
-        console.error("DB error on forgot-password-request:", err);
-        return res.status(500).json({ message: "DB error" });
-      }
-
-      const code = generateOtp();
-      const expiresAt = getExpiry(10);
-
-      db.run(
-        "INSERT INTO otps (email, code, purpose, expires_at) VALUES (?, ?, ?, ?)",
-        [email, code, "RESET", expiresAt],
-        async (err2) => {
-          if (err2) {
-            console.error("DB error inserting reset OTP:", err2);
-            return res.status(500).json({ message: "DB error" });
-          }
-
-          try {
-            await sendOtpEmail({ to: email, otp: code, purpose: "RESET" });
-            console.log("Reset OTP for", email, "=>", code);
-            return res.json({
-              message:
-                "If the email exists, an OTP has been sent to reset the password"
-            });
-          } catch (mailErr) {
-            console.error("Error sending reset OTP email:", mailErr);
-            return res
-              .status(500)
-              .json({ message: "Failed to send OTP email. Try again." });
-          }
+    db.get(
+      "SELECT id FROM users WHERE email = ?",
+      [email],
+      (err, userRow) => {
+        if (err) {
+          console.error("DB error on forgot-password-request:", err);
+          return res.status(500).json({ message: "DB error" });
         }
-      );
-    });
+
+        // IMPORTANT FIX:
+        // If user does not exist, we DO NOT create OTP or pretend reset is possible.
+        if (!userRow) {
+          console.warn(
+            "Forgot password requested for non-existing email:",
+            email
+          );
+          // For security, you can still send a generic success message,
+          // but do not create an OTP.
+          return res.json({
+            message:
+              "If the email exists, an OTP has been sent to reset the password"
+          });
+        }
+
+        const code = generateOtp();
+        const expiresAt = getExpiry(10);
+
+        db.run(
+          "INSERT INTO otps (email, code, purpose, expires_at) VALUES (?, ?, ?, ?)",
+          [email, code, "RESET", expiresAt],
+          async (err2) => {
+            if (err2) {
+              console.error("DB error inserting reset OTP:", err2);
+              return res.status(500).json({ message: "DB error" });
+            }
+
+            try {
+              await sendOtpEmail({ to: email, otp: code, purpose: "RESET" });
+              console.log("Reset OTP for", email, "=>", code);
+              return res.json({
+                message:
+                  "If the email exists, an OTP has been sent to reset the password"
+              });
+            } catch (mailErr) {
+              console.error("Error sending reset OTP email:", mailErr);
+              return res.status(500).json({
+                message: "Failed to send OTP email. Try again."
+              });
+            }
+          }
+        );
+      }
+    );
   }
 );
 
@@ -248,7 +276,8 @@ router.post(
     body("newPassword").isLength({ min: 6 })
   ]),
   (req, res) => {
-    const { email, otp, newPassword } = req.body;
+    const { email: rawEmail, otp, newPassword } = req.body;
+    const email = normalizeEmail(rawEmail);
 
     db.get(
       "SELECT * FROM otps WHERE email = ? AND code = ? AND purpose = ? AND used = 0",
@@ -278,7 +307,20 @@ router.post(
               return res.status(500).json({ message: "DB error" });
             }
 
+            // IMPORTANT FIX:
+            // If no rows were updated, then there is no user with that email.
+            if (this.changes === 0) {
+              console.warn(
+                "Password reset attempted for non-existing email:",
+                email
+              );
+              return res
+                .status(400)
+                .json({ message: "User not found for this email" });
+            }
+
             db.run("UPDATE otps SET used = 1 WHERE id = ?", [otpRow.id]);
+            console.log("Password reset successful for", email);
             return res.json({ message: "Password reset successful" });
           }
         );

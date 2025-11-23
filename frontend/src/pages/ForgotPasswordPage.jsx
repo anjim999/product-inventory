@@ -1,3 +1,4 @@
+// src/pages/ForgotPasswordPage.jsx
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axiosClient";
@@ -15,11 +16,20 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // helper to keep email consistent: trim + lowercase
+  const normalizeEmail = (value) => value.trim().toLowerCase();
+
   const handleRequestOtp = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     try {
-      await api.post("/api/auth/forgot-password-request", { email });
+      const normalizedEmail = normalizeEmail(email);
+      setEmail(normalizedEmail); // store normalized version so step 2 & login use same email
+
+      await api.post("/api/auth/forgot-password-request", {
+        email: normalizedEmail,
+      });
 
       // 200 OK – OTP sent
       toast.success(
@@ -34,7 +44,7 @@ export default function ForgotPasswordPage() {
         err.response?.data?.message ||
         "Error sending OTP. Please try again.";
 
-      toast.error(backendMsg);
+      toast.error(backendMsg, { autoClose: 2000 });
     } finally {
       setLoading(false);
     }
@@ -43,10 +53,13 @@ export default function ForgotPasswordPage() {
   const handleVerify = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     try {
+      const normalizedEmail = normalizeEmail(email);
+
       await api.post("/api/auth/forgot-password-verify", {
-        email,
-        otp,
+        email: normalizedEmail,
+        otp: otp.trim(),
         newPassword,
       });
 
@@ -64,7 +77,7 @@ export default function ForgotPasswordPage() {
         err.response?.data?.message ||
         "Error resetting password. Check OTP and try again.";
 
-      toast.error(backendMsg);
+      toast.error(backendMsg, { autoClose: 2000 });
     } finally {
       setLoading(false);
     }
