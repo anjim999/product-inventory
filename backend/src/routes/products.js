@@ -28,17 +28,20 @@ function buildProductWhere({ user, search, category, lowStockOnly }) {
     params.push(user.userId);
   }
 
-  if (search) {
+  const searchTrim = (search || '').trim();
+  if (searchTrim) {
     where += ' AND LOWER(name) LIKE ?';
-    params.push(`%${search.toLowerCase()}%`);
+    params.push(`%${searchTrim.toLowerCase()}%`);
   }
 
-  if (category) {
-    where += ' AND category = ?';
-    params.push(category);
+  const catTrim = (category || '').trim();
+  if (catTrim) {
+    // normalize both sides (TRIM + LOWER)
+    where += ' AND TRIM(LOWER(category)) = TRIM(LOWER(?))';
+    params.push(catTrim);
   }
 
-  // ✅ FIXED: low stock = stock > 0 AND stock <= threshold
+  // low stock = stock > 0 AND stock <= threshold
   if (lowStockOnly === 'true' || lowStockOnly === true) {
     where += ' AND stock > 0 AND stock <= ?';
     params.push(LOW_STOCK_THRESHOLD);
@@ -195,7 +198,10 @@ router.put(
 
     const { id } = req.params;
     const user = req.user;
-    const { name, unit, category, brand, stock, description = '' } = req.body;
+
+    const rawCategory = req.body.category || '';
+    const category = rawCategory.trim();
+    const { name, unit, brand, stock, description = '' } = req.body;
 
     const stockNum = Number(stock) || 0;
     const status = stockNum === 0 ? 'Out of Stock' : 'In Stock';
@@ -312,7 +318,7 @@ router.post('/import', upload.single('file'), (req, res) => {
           new Promise((resolve) => {
             const name = (productRow.name || '').trim();
             const unit = productRow.unit || '';
-            const category = productRow.category || '';
+            const category = (productRow.category || '').trim();
             const brand = productRow.brand || '';
             const stock = parseInt(productRow.stock || '0', 10);
             const status = stock === 0 ? 'Out of Stock' : 'In Stock';
@@ -466,7 +472,11 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
 
     const user = req.user;
-    const { name, unit, category, brand, stock, description = '' } = req.body;
+
+    const rawCategory = req.body.category || '';
+    const category = rawCategory.trim();
+    const { name, unit, brand, stock, description = '' } = req.body;
+
     const file = req.file;
 
     const stockNum = Number(stock) || 0;

@@ -1,20 +1,23 @@
+// frontend/src/components/CategoryFilter.jsx
 export default function CategoryFilter({ categories, value, onChange }) {
-  // Normalize categories: trimmed, lowercased, remove empty
+  // Normalize categories: trimmed, remove empty/null/undefined
   const normalized = (categories || [])
     .filter(Boolean)
-    .map((c) => c.trim().toLowerCase());
+    .map((c) => c.trim());
 
-  // Deduplicate, sort alphabetically
-  const uniqueCategories = Array.from(new Set(normalized)).sort();
+  // Deduplicate, sort alphabetically (case-insensitive sort)
+  const uniqueCategories = Array.from(new Set(normalized)).sort((a, b) =>
+    a.toLowerCase().localeCompare(b.toLowerCase())
+  );
 
-  // Convert "shoe" → "Shoe", “men clothes” → “Men Clothes”
+  // Convert "shoe" → "Shoe", “men clothes” → “Men Clothes” (for label only)
   const toTitleCase = (str) =>
     str.replace(/\w\S*/g, (txt) => {
       return txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase();
     });
 
   const handleChange = (e) => {
-    onChange(e.target.value); // lowercase value
+    onChange(e.target.value); // send ORIGINAL value (no forced lowercase)
   };
 
   return (
