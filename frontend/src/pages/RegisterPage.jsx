@@ -4,6 +4,7 @@ import api from "../api/axiosClient";
 import { useAuth } from "../context/AuthContext";
 
 export default function RegisterPage() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [step, setStep] = useState(1);
   const [otp, setOtp] = useState("");
@@ -19,6 +20,7 @@ export default function RegisterPage() {
     setMessage("");
     setLoading(true);
     try {
+      // Backend only needs email for OTP; name is used in verify step
       await api.post("/api/auth/register-request-otp", { email });
       setStep(2);
       setMessage("OTP sent to your email. Please check your inbox.");
@@ -39,9 +41,10 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       const res = await api.post("/api/auth/register-verify", {
+        name,
         email,
         otp,
-        password
+        password,
       });
       // res.data -> { message, token, user }
       login(res.data);
@@ -69,6 +72,17 @@ export default function RegisterPage() {
         {step === 1 && (
           <form onSubmit={handleRequestOtp} className="space-y-4">
             <div>
+              <label className="block text-sm mb-1">Name</label>
+              <input
+                type="text"
+                className="w-full border rounded px-3 py-2 text-sm"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                placeholder="Your full name"
+              />
+            </div>
+            <div>
               <label className="block text-sm mb-1">Email</label>
               <input
                 type="email"
@@ -91,6 +105,15 @@ export default function RegisterPage() {
 
         {step === 2 && (
           <form onSubmit={handleVerify} className="space-y-4">
+            <div>
+              <label className="block text-sm mb-1">Name</label>
+              <input
+                type="text"
+                className="w-full border rounded px-3 py-2 text-sm bg-slate-100"
+                value={name}
+                disabled
+              />
+            </div>
             <div>
               <label className="block text-sm mb-1">Email</label>
               <input
@@ -139,7 +162,7 @@ export default function RegisterPage() {
                 setMessage("");
               }}
             >
-              Change email
+              Change email / name
             </button>
           </form>
         )}

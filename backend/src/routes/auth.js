@@ -27,13 +27,16 @@ const validate = (rules) => [
  * POST /api/auth/register-request-otp
  * body: { email }
  */
-router.post('/register-request-otp', async (req, res, next) => {
+/**
+ * POST /api/auth/register-request-otp
+ * body: { email }
+ */
+router.post('/register-request-otp', async (req, res) => {
   try {
     const { email } = req.body;
     const code = generateOtp();
     const expiresAt = getExpiry(10);
 
-    // save OTP to DB first
     db.run(
       "INSERT INTO otps (email, code, purpose, expires_at) VALUES (?, ?, ?, ?)",
       [email, code, "REGISTER", expiresAt],
@@ -43,24 +46,25 @@ router.post('/register-request-otp', async (req, res, next) => {
           return res.status(500).json({ message: 'DB error' });
         }
 
-        try {
-          if (process.env.NODE_ENV === 'production') {
-            // In production demo, log the OTP instead of sending
-            console.log('REGISTER OTP for', email, 'is', code);
-          } else {
-            await sendOtpEmail({ to: email, otp: code, purpose: 'REGISTER' });
-          }
+        // Try to send email, but do NOT fail the whole request if Resend blocks it
+        const mailResult = await sendOtpEmail({
+          to: email,
+          otp: code,
+          purpose: 'REGISTER'
+        });
 
-          return res.json({
-            message:
-              process.env.NODE_ENV === 'production'
-                ? 'OTP generated (check server logs in this demo).'
-                : 'OTP sent to email.',
-          });
-        } catch (mailErr) {
-          console.error('Error sending register OTP email:', mailErr);
-          return res.status(500).json({ message: 'Failed to send OTP email' });
+        if (!mailResult.success) {
+          console.warn(
+            'OTP email not delivered (Resend sandbox or other issue). OTP is logged on server only.'
+          );
         }
+
+        return res.json({
+          message:
+            "OTP generated. If email doesn't arrive (sandbox), use the OTP from server logs.",
+          // For local development, you can expose OTP to frontend for easier testing:
+          devOtp: process.env.NODE_ENV !== 'production' ? code : undefined
+        });
       }
     );
   } catch (err) {
@@ -70,19 +74,25 @@ router.post('/register-request-otp', async (req, res, next) => {
 });
 
 
+
 /**
  * POST /api/auth/register-verify
  * body: { email, otp, password }
  */
+/**
+ * POST /api/auth/register-verify
+ * body: { name, email, otp, password }
+ */
 router.post(
   "/register-verify",
   validate([
+    body("name").notEmpty().withMessage("Name is required"),
     body("email").isEmail(),
     body("otp").isLength({ min: 4 }),
     body("password").isLength({ min: 6 })
   ]),
   (req, res) => {
-    const { email, otp, password } = req.body;
+    const { name, email, otp, password } = req.body;
 
     db.get(
       "SELECT * FROM otps WHERE email = ? AND code = ? AND purpose = ? AND used = 0",
@@ -105,8 +115,8 @@ router.post(
         const createdAt = new Date().toISOString();
 
         db.run(
-          "INSERT INTO users (email, password, is_verified, created_at) VALUES (?, ?, ?, ?)",
-          [email, hashed, 1, createdAt],
+          "INSERT INTO users (name, email, password, is_verified, created_at) VALUES (?, ?, ?, ?, ?)",
+          [name, email, hashed, 1, createdAt],
           function (err2) {
             if (err2) {
               console.error("DB error inserting user:", err2);
@@ -116,14 +126,18 @@ router.post(
             db.run("UPDATE otps SET used = 1 WHERE id = ?", [otpRow.id]);
 
             const userId = this.lastID;
-            const token = jwt.sign({ userId, email }, JWT_SECRET, {
-              expiresIn: "1d"
-            });
+
+            // Include name in token
+            const token = jwt.sign(
+              { userId, email, name },
+              JWT_SECRET,
+              { expiresIn: "1d" }
+            );
 
             return res.json({
               message: "Registration successful",
               token,
-              user: { id: userId, email }
+              user: { id: userId, name, email }
             });
           }
         );
