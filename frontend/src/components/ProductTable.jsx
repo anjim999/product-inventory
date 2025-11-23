@@ -36,6 +36,8 @@ export default function ProductTable({
     setEditingId(product.id);
     setEditForm({
       ...product,
+      // keep stock as string in form so the input works nicely
+      stock: String(product.stock ?? 0),
       imageFile: null
     });
   };
@@ -56,7 +58,11 @@ export default function ProductTable({
       formData.append('unit', editForm.unit);
       formData.append('category', editForm.category);
       formData.append('brand', editForm.brand);
-      formData.append('stock', editForm.stock);
+
+      // ensure stock is sent as a number string like "5"
+      const stockNum = Number(editForm.stock) || 0;
+      formData.append('stock', stockNum);
+
       formData.append('description', editForm.description || '');
 
       if (editForm.imageFile) {
@@ -87,7 +93,7 @@ export default function ProductTable({
   };
 
   const handleRowClick = (product) => {
-    if (editingId === product.id) return; // avoid conflict
+    if (editingId === product.id) return;
     onSelectProduct(product);
   };
 
@@ -144,7 +150,7 @@ export default function ProductTable({
             const isEditing = editingId === p.id;
             const data = isEditing ? editForm : p;
 
-            const stockNum = Number(data.stock) || 0;
+            const stockNum = Number(data.stock ?? 0) || 0;
             const isLowStock = stockNum <= LOW_STOCK_THRESHOLD;
 
             const statusLabel =
@@ -173,6 +179,8 @@ export default function ProductTable({
                     <div className="w-10 h-10 bg-slate-200 rounded" />
                   )}
                 </td>
+
+                {/* Name */}
                 <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                   {isEditing ? (
                     <input
@@ -191,6 +199,8 @@ export default function ProductTable({
                     </div>
                   )}
                 </td>
+
+                {/* Unit */}
                 <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                   {isEditing ? (
                     <input
@@ -202,17 +212,23 @@ export default function ProductTable({
                     data.unit
                   )}
                 </td>
+
+                {/* Category */}
                 <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                   {isEditing ? (
                     <input
                       className="border rounded px-2 py-1 text-xs w-full"
                       value={data.category}
-                      onChange={(e) => handleChange('category', e.target.value)}
+                      onChange={(e) =>
+                        handleChange('category', e.target.value)
+                      }
                     />
                   ) : (
                     data.category
                   )}
                 </td>
+
+                {/* Brand */}
                 <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                   {isEditing ? (
                     <input
@@ -224,21 +240,23 @@ export default function ProductTable({
                     data.brand
                   )}
                 </td>
+
+                {/* Stock (editable) */}
                 <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                   {isEditing ? (
                     <input
                       type="number"
                       min="0"
                       className="border rounded px-2 py-1 text-xs w-20"
-                      value={stockNum}
-                      onChange={(e) =>
-                        handleChange('stock', Number(e.target.value) || 0)
-                      }
+                      value={editForm.stock}
+                      onChange={(e) => handleChange('stock', e.target.value)}
                     />
                   ) : (
                     stockNum
                   )}
                 </td>
+
+                {/* Status */}
                 <td className="px-3 py-2">
                   <span
                     className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${statusLabel.className}`}
@@ -246,6 +264,8 @@ export default function ProductTable({
                     {statusLabel.text}
                   </span>
                 </td>
+
+                {/* Actions */}
                 <td
                   className="px-3 py-2 space-x-2"
                   onClick={(e) => e.stopPropagation()}

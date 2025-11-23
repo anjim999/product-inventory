@@ -96,7 +96,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-60"
+              className="cursor-pointer w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-60"
             >
               {loading ? "Sending OTP..." : "Send OTP"}
             </button>
@@ -148,13 +148,13 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 disabled:opacity-60"
+              className="cursor-pointer w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 disabled:opacity-60"
             >
               {loading ? "Verifying..." : "Register"}
             </button>
             <button
               type="button"
-              className="w-full mt-1 text-xs text-slate-600 underline"
+              className="cursor-pointer w-full mt-1 text-xs text-slate-600 underline"
               onClick={() => {
                 setStep(1);
                 setOtp("");

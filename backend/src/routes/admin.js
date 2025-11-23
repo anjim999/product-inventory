@@ -45,4 +45,52 @@ router.get('/users', (req, res) => {
   });
 });
 
+/**
+ * DELETE /api/admin/users/:id
+ * Deletes a non-admin user by id.
+ * - Only admins can call this (protected by middleware above).
+ * - Refuses to delete admin accounts for safety.
+ */
+router.delete('/users/:id', (req, res) => {
+  const userId = parseInt(req.params.id, 10);
+
+  if (Number.isNaN(userId)) {
+    return res.status(400).json({ message: 'Invalid user id' });
+  }
+
+  // 1) Check if user exists
+  const findSql = 'SELECT id, email, role FROM users WHERE id = ?';
+  db.get(findSql, [userId], (err, user) => {
+    if (err) {
+      console.error('Error finding user to delete:', err);
+      return res.status(500).json({ message: 'DB error' });
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // 2) Do not allow deleting admins
+    if (user.role === 'admin') {
+      return res
+        .status(400)
+        .json({ message: 'Cannot delete admin accounts' });
+    }
+
+    // 3) Delete user
+    const deleteSql = 'DELETE FROM users WHERE id = ?';
+    db.run(deleteSql, [userId], function (deleteErr) {
+      if (deleteErr) {
+        console.error('Error deleting user:', deleteErr);
+        return res.status(500).json({ message: 'Failed to delete user' });
+      }
+
+      return res.json({
+        message: 'User deleted successfully',
+        deletedId: userId,
+      });
+    });
+  });
+});
+
 module.exports = router;

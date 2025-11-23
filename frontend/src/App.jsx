@@ -6,12 +6,13 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ProductsPage from "./pages/ProductsPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
-
+import Header from "./components/Header";
 export default function App() {
   return (
+    <>
+    {/* <Header/> */}
     <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
-
+      
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -36,5 +37,6 @@ export default function App() {
 
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
+    </>
   );
 }

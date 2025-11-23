@@ -51,7 +51,7 @@ export default function AddProductModal({ onAdded }) {
   return (
     <>
       <button
-        className="text-sm bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700"
+        className="cursor-pointer text-sm bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700"
         onClick={() => setOpen(true)}
       >
         Add New Product

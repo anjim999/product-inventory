@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../api/axiosClient';
 import Header from '../components/Header';
 import SearchBar from '../components/SearchBar';
@@ -8,9 +8,9 @@ import AddProductModal from '../components/AddProductModal';
 import ProductTable from '../components/ProductTable';
 import InventoryHistorySidebar from '../components/InventoryHistorySidebar';
 import Pagination from '../components/Pagination';
-
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
+  const [allCategories, setAllCategories] = useState([]); // 👈 NEW
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
@@ -22,11 +22,6 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(false);
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [summary, setSummary] = useState(null);
-
-  const categories = useMemo(() => {
-    const set = new Set(products.map((p) => p.category));
-    return Array.from(set).filter(Boolean);
-  }, [products]);
 
   const fetchSummary = async () => {
     try {
@@ -49,12 +44,23 @@ export default function ProductsPage() {
           category,
           sortBy,
           sortOrder,
-          lowStockOnly
-        }
+          lowStockOnly,
+        },
       });
-      setProducts(res.data.data);
+
+      const fetchedProducts = res.data.data || [];
+      setProducts(fetchedProducts);
       setPage(res.data.page);
       setTotalPages(res.data.totalPages);
+
+      // 👇 UPDATE CATEGORIES AS UNION (never shrink)
+      setAllCategories((prev) => {
+        const set = new Set(prev);
+        fetchedProducts.forEach((p) => {
+          if (p.category) set.add(p.category);
+        });
+        return Array.from(set);
+      });
     } catch (err) {
       console.error(err);
     } finally {
@@ -89,21 +95,14 @@ export default function ProductsPage() {
   return (
     <div className="min-h-screen">
       <Header />
-      <main className="max-w-6xl mx-auto px-4 py-6 flex gap-4">
+      <main className="max-w-6xl mx-auto px-4 py-6 flex gap-4 mt-13">
         <section className="flex-1 flex flex-col gap-4">
-          {/* Dashboard Summary Cards */}
           {summary && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2">
               <div className="bg-white rounded-xl shadow px-3 py-3">
                 <p className="text-[11px] text-slate-500">Total Products</p>
                 <p className="text-xl font-semibold">
                   {summary.totalProducts || 0}
-                </p>
-              </div>
-              <div className="bg-white rounded-xl shadow px-3 py-3">
-                <p className="text-[11px] text-slate-500">Total Units</p>
-                <p className="text-xl font-semibold">
-                  {summary.totalUnits || 0}
                 </p>
               </div>
               <div className="bg-white rounded-xl shadow px-3 py-3">
@@ -130,14 +129,14 @@ export default function ProductsPage() {
             <div className="flex flex-wrap items-center gap-2">
               <SearchBar value={search} onChange={setSearch} />
               <CategoryFilter
-                categories={categories}
+                categories={allCategories}   // 👈 use allCategories here
                 value={category}
                 onChange={setCategory}
               />
               <button
                 type="button"
                 onClick={toggleLowStock}
-                className={`text-xs px-3 py-2 rounded border ${
+                className={`cursor-pointer text-xs px-3 py-2 rounded border ${
                   lowStockOnly
                     ? 'bg-orange-600 text-white border-orange-600'
                     : 'text-orange-700 border-orange-300 bg-orange-50'

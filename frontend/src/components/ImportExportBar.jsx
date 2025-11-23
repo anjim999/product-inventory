@@ -77,7 +77,7 @@ alert(
       <button
         type="button"              // ✅ VERY IMPORTANT
         onClick={handleExport}     // ✅ calls Axios, not navigation
-        className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-3 py-1.5 rounded"
+        className="cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-3 py-1.5 rounded"
       >
         Export CSV
       </button>
