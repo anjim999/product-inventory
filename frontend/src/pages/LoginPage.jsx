@@ -3,111 +3,125 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axiosClient";
+import { FaSignInAlt, FaSpinner } from "react-icons/fa";
+
+// Toastify
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login } = useAuth(); // ✅ use login from context
+  const { login } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setMessage("");
-  setLoading(true);
+    e.preventDefault();
+    setLoading(true);
 
-  try {
-    console.log("🔹 Submitting login with:", { email, password });
+    try {
+      const res = await api.post("/api/auth/login", { email, password });
+      const { token, user } = res.data || {};
 
-    const res = await api.post("/api/auth/login", { email, password });
-    console.log("✅ Login response:", res);
+      if (!token || !user) {
+        toast.error("Login succeeded but server sent no token/user");
+        return;
+      }
 
-    const { token, user, message: serverMessage } = res.data || {};
+      login({ token, user });
 
-    if (!token || !user) {
-      console.error("❌ Invalid login response shape:", res.data);
-      setMessage("Login succeeded but server did not send token/user");
-      return;
+      // SUCCESS TOAST — 200 OK
+      toast.success("Login successful!", { autoClose: 1500 });
+
+      setTimeout(() => {
+        // Redirect role wise
+        if (user.role === "admin") navigate("/admin");
+        else navigate("/products");
+      }, 1500);
+    } catch (err) {
+      const backendMsg = err?.response?.data?.message;
+      toast.error(backendMsg || "Login failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
-
-    // Save in context + localStorage
-    console.log("🔹 Calling login() with:", { token, user });
-    login({ token, user });
-
-    console.log("✅ Auth saved. User:", user);
-
-    // Role-based redirect
-    if (user.role === "admin") {
-      console.log("➡️ Navigating to /admin");
-      navigate("/admin");
-    } else {
-      console.log("➡️ Navigating to /products");
-      navigate("/products");
-    }
-  } catch (err) {
-    console.error("❌ Login error (catch):", err);
-
-    const backendMsg = err?.response?.data?.message;
-    setMessage(backendMsg || "Login failed. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100">
-      <div className="w-full max-w-md bg-white rounded-xl shadow p-6 space-y-4">
-        <h1 className="text-2xl font-semibold text-center">Login</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+      <ToastContainer />
 
-        {message && (
-          <p className="text-sm text-center text-red-500">{message}</p>
-        )}
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 space-y-6 border border-gray-200">
+        <div className="text-center">
+          <FaSignInAlt className="w-8 h-8 mx-auto mb-2 text-blue-600" />
+          <h1 className="text-3xl font-extrabold text-gray-900">Sign In</h1>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
+          {/* Email */}
           <div>
-            <label className="block text-sm mb-1">Email</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email address
+            </label>
             <input
               type="email"
-              className="w-full border rounded px-3 py-2 text-sm"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow duration-200"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="you@example.com"
+              placeholder="Enter your email"
+              autoComplete="email"
             />
           </div>
 
+          {/* Password */}
           <div>
-            <label className="block text-sm mb-1">Password</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Password
+            </label>
             <input
               type="password"
-              className="w-full border rounded px-3 py-2 text-sm"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow duration-200"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              placeholder="Enter your password"
+              autoComplete="current-password"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="cursor-pointer w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-60"
+            className="cursor-pointer w-full bg-blue-600 text-white py-2.5 rounded-lg font-semibold shadow-md hover:bg-blue-700 active:scale-[0.98] transition duration-150 flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {loading ? "Logging in..." : "Login"}
+            {loading ? (
+              <>
+                <FaSpinner className="animate-spin w-4 h-4" />
+                <span>Logging in...</span>
+              </>
+            ) : (
+              <span>Login</span>
+            )}
           </button>
         </form>
 
-        <p className="text-center text-sm">
-          <Link to="/register" className="text-blue-600 hover:underline">
+        <div className="flex justify-between text-xs pt-2">
+          <Link
+            to="/register"
+            className="text-blue-600 font-medium hover:text-blue-700 hover:underline cursor-pointer transition duration-150"
+          >
             Register
-          </Link>{" "}
-          ·{" "}
-          <Link to="/forgot-password" className="text-blue-600 hover:underline">
+          </Link>
+
+          <Link
+            to="/forgot-password"
+            className="text-blue-600 font-medium hover:text-blue-700 hover:underline cursor-pointer transition duration-150"
+          >
             Forgot password?
           </Link>
-        </p>
+        </div>
       </div>
     </div>
   );

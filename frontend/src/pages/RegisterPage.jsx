@@ -2,6 +2,11 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axiosClient";
 import { useAuth } from "../context/AuthContext";
+import { FaUserPlus, FaSpinner, FaEnvelope, FaLock } from "react-icons/fa";
+
+// Toastify
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -9,7 +14,6 @@ export default function RegisterPage() {
   const [step, setStep] = useState(1);
   const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
@@ -17,19 +21,23 @@ export default function RegisterPage() {
 
   const handleRequestOtp = async (e) => {
     e.preventDefault();
-    setMessage("");
     setLoading(true);
     try {
-      // Backend only needs email for OTP; name is used in verify step
       await api.post("/api/auth/register-request-otp", { email });
+
+      // 200 OK — OTP sent
+      toast.success("OTP sent to your email. Please check your inbox.", {
+        autoClose: 2000,
+      });
+
       setStep(2);
-      setMessage("OTP sent to your email. Please check your inbox.");
     } catch (err) {
       console.error(err);
-      setMessage(
+      const backendMsg =
         err.response?.data?.message ||
-          "Error sending OTP. Please try again."
-      );
+        "Error sending OTP. Please try again.";
+
+      toast.error(backendMsg);
     } finally {
       setLoading(false);
     }
@@ -37,7 +45,6 @@ export default function RegisterPage() {
 
   const handleVerify = async (e) => {
     e.preventDefault();
-    setMessage("");
     setLoading(true);
     try {
       const res = await api.post("/api/auth/register-verify", {
@@ -46,120 +53,190 @@ export default function RegisterPage() {
         otp,
         password,
       });
-      // res.data -> { message, token, user }
+
       login(res.data);
-      navigate("/products");
+
+      // 200 OK — registration success
+      toast.success("Registration successful!", { autoClose: 1500 });
+
+      setTimeout(() => {
+        navigate("/products");
+      }, 1500);
     } catch (err) {
       console.error(err);
-      setMessage(
+      const backendMsg =
         err.response?.data?.message ||
-          "Error verifying OTP. Please check your OTP and try again."
-      );
+        "Error verifying OTP. Please check your OTP and try again.";
+
+      toast.error(backendMsg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100">
-      <div className="w-full max-w-md bg-white rounded-xl shadow p-6 space-y-4">
-        <h1 className="text-2xl font-semibold text-center">Register</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+      <ToastContainer />
 
-        {message && (
-          <p className="text-sm text-center text-red-500">{message}</p>
-        )}
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 space-y-6 border border-gray-200">
+        <div className="text-center">
+          <FaUserPlus className="w-8 h-8 mx-auto mb-2 text-indigo-600" />
+          <h1 className="text-3xl font-extrabold text-gray-900">
+            {step === 1 ? "Create Account" : "Verify & Set Password"}
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">Step {step} of 2</p>
+        </div>
 
         {step === 1 && (
-          <form onSubmit={handleRequestOtp} className="space-y-4">
+          <form
+            onSubmit={handleRequestOtp}
+            className="space-y-6"
+            autoComplete="off"
+          >
+            {/* Name */}
             <div>
-              <label className="block text-sm mb-1">Name</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Name
+              </label>
               <input
                 type="text"
-                className="w-full border rounded px-3 py-2 text-sm"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow duration-200"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
                 placeholder="Your full name"
+                autoComplete="name"
               />
             </div>
+
+            {/* Email */}
             <div>
-              <label className="block text-sm mb-1">Email</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email address
+              </label>
               <input
                 type="email"
-                className="w-full border rounded px-3 py-2 text-sm"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow duration-200"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="you@example.com"
+                autoComplete="email"
               />
             </div>
+
             <button
               type="submit"
               disabled={loading}
-              className="cursor-pointer w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-60"
+              className="cursor-pointer w-full bg-blue-600 text-white py-2.5 rounded-lg font-semibold shadow-md hover:bg-blue-700 active:scale-[0.98] transition duration-150 flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {loading ? "Sending OTP..." : "Send OTP"}
+              {loading ? (
+                <>
+                  <FaSpinner className="animate-spin w-4 h-4" />
+                  <span>Sending OTP...</span>
+                </>
+              ) : (
+                <>
+                  <FaEnvelope className="w-4 h-4" />
+                  <span>Send OTP</span>
+                </>
+              )}
             </button>
           </form>
         )}
 
         {step === 2 && (
-          <form onSubmit={handleVerify} className="space-y-4">
+          <form
+            onSubmit={handleVerify}
+            className="space-y-6"
+            autoComplete="off"
+          >
+            {/* Name (Disabled for review) */}
             <div>
-              <label className="block text-sm mb-1">Name</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Name
+              </label>
               <input
                 type="text"
-                className="w-full border rounded px-3 py-2 text-sm bg-slate-100"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm bg-gray-100 text-gray-500"
                 value={name}
                 disabled
               />
             </div>
+
+            {/* Email (Disabled for review) */}
             <div>
-              <label className="block text-sm mb-1">Email</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
               <input
                 type="email"
-                className="w-full border rounded px-3 py-2 text-sm bg-slate-100"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm bg-gray-100 text-gray-500"
                 value={email}
                 disabled
               />
             </div>
+
+            {/* OTP */}
             <div>
-              <label className="block text-sm mb-1">OTP</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                OTP
+              </label>
               <input
                 type="text"
-                className="w-full border rounded px-3 py-2 text-sm"
+                name="otp"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow duration-200"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 required
                 placeholder="Enter OTP from email"
+                autoComplete="one-time-code"
+                inputMode="numeric"
+                maxLength="6"
               />
             </div>
+
+            {/* Password */}
             <div>
-              <label className="block text-sm mb-1">Password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Create Password
+              </label>
               <input
                 type="password"
-                className="w-full border rounded px-3 py-2 text-sm"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow duration-200"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="Create a password"
+                autoComplete="new-password"
               />
             </div>
+
             <button
               type="submit"
               disabled={loading}
-              className="cursor-pointer w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 disabled:opacity-60"
+              className="cursor-pointer w-full bg-green-600 text-white py-2.5 rounded-lg font-semibold shadow-md hover:bg-green-700 active:scale-[0.98] transition duration-150 flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {loading ? "Verifying..." : "Register"}
+              {loading ? (
+                <>
+                  <FaSpinner className="animate-spin w-4 h-4" />
+                  <span>Verifying...</span>
+                </>
+              ) : (
+                <>
+                  <FaLock className="w-4 h-4" />
+                  <span>Register</span>
+                </>
+              )}
             </button>
+
             <button
               type="button"
-              className="cursor-pointer w-full mt-1 text-xs text-slate-600 underline"
+              className="cursor-pointer w-full mt-2 text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:underline transition-colors duration-150"
               onClick={() => {
                 setStep(1);
                 setOtp("");
                 setPassword("");
-                setMessage("");
               }}
             >
               Change email / name
@@ -167,12 +244,17 @@ export default function RegisterPage() {
           </form>
         )}
 
-        <p className="text-center text-sm">
-          Already have an account?{" "}
-          <Link to="/login" className="text-blue-600 hover:underline">
-            Login
-          </Link>
-        </p>
+        <div className="text-center pt-4 border-t border-gray-100">
+          <p className="text-sm text-gray-600">
+            Already have an account?{" "}
+            <Link
+              to="/login"
+              className="text-indigo-600 font-medium hover:underline cursor-pointer"
+            >
+              Login
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

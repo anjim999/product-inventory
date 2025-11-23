@@ -1,5 +1,6 @@
 // src/components/ImportExportBar.jsx
 import api from "../api/axiosClient";
+import { toast } from "react-toastify";
 
 export default function ImportExportBar({ onImported }) {
   const handleImport = async (e) => {
@@ -10,36 +11,42 @@ export default function ImportExportBar({ onImported }) {
     formData.append("file", file);
 
     try {
-      // in ImportExportBar.jsx
-const res = await api.post("/api/products/import", formData, {
-  headers: { "Content-Type": "multipart/form-data" }
-});
-console.log("Import result:", res.data);  // 👈 add this
-alert(
-  `Import completed. Added: ${res.data.added}, Skipped: ${res.data.skipped}`
-);
+      const res = await api.post("/api/products/import", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-      onImported?.(); // refresh product list
+      console.log("Import result:", res.data);
+
+      // ✅ Toast instead of alert
+      toast.success(
+        `Import completed. Added: ${res.data.added}, Skipped: ${res.data.skipped}`
+      );
+
+      // refresh product list
+      onImported?.();
     } catch (err) {
       console.error("Import error:", err);
-      alert(
+
+      // ✅ Toast error
+      toast.error(
         err.response?.data?.message ||
           "Error importing CSV. Please try again."
       );
     } finally {
+      // reset file input so same file can be selected again if needed
       e.target.value = "";
     }
   };
 
   const handleExport = async () => {
-    console.log("Export clicked"); // debug
+    console.log("Export clicked");
     try {
       const res = await api.get("/api/products/export", {
-        responseType: "blob"
+        responseType: "blob",
       });
 
       const blob = new Blob([res.data], {
-        type: "text/csv;charset=utf-8;"
+        type: "text/csv;charset=utf-8;",
       });
       const url = window.URL.createObjectURL(blob);
 
@@ -51,9 +58,14 @@ alert(
       link.remove();
 
       window.URL.revokeObjectURL(url);
+
+      // ✅ Optional success toast
+      toast.success("Products exported as CSV.");
     } catch (err) {
       console.error("Export error:", err);
-      alert(
+
+      // ✅ Toast error
+      toast.error(
         err.response?.data?.message ||
           "Error exporting CSV. Please try again."
       );
@@ -75,8 +87,8 @@ alert(
 
       {/* Export CSV */}
       <button
-        type="button"              // ✅ VERY IMPORTANT
-        onClick={handleExport}     // ✅ calls Axios, not navigation
+        type="button"
+        onClick={handleExport}
         className="cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-3 py-1.5 rounded"
       >
         Export CSV

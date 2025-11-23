@@ -53,6 +53,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/admin', adminRoutes);
 app.use(errorHandler);
+app.use('/api/products', require('./routes/products'));
 
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);

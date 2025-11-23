@@ -1,29 +1,40 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axiosClient";
+import { FaLockOpen, FaSpinner, FaEnvelope, FaKey } from "react-icons/fa";
+
+// Toastify
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [step, setStep] = useState(1);
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleRequestOtp = async (e) => {
     e.preventDefault();
-    setMessage("");
     setLoading(true);
     try {
       await api.post("/api/auth/forgot-password-request", { email });
+
+      // 200 OK – OTP sent
+      toast.success(
+        "If the email exists, an OTP has been sent. Please check your inbox.",
+        { autoClose: 2000 }
+      );
+
       setStep(2);
-      setMessage("If the email exists, an OTP has been sent. Check your inbox.");
     } catch (err) {
       console.error(err);
-      setMessage(
-        err.response?.data?.message || "Error sending OTP. Please try again."
-      );
+      const backendMsg =
+        err.response?.data?.message ||
+        "Error sending OTP. Please try again.";
+
+      toast.error(backendMsg);
     } finally {
       setLoading(false);
     }
@@ -31,107 +42,180 @@ export default function ForgotPasswordPage() {
 
   const handleVerify = async (e) => {
     e.preventDefault();
-    setMessage("");
     setLoading(true);
     try {
       await api.post("/api/auth/forgot-password-verify", {
         email,
         otp,
-        newPassword
+        newPassword,
       });
-      setMessage("Password reset successful. Redirecting to login...");
-      navigate("/login");
+
+      // 200 OK – password reset
+      toast.success("Password reset successful. Redirecting to login...", {
+        autoClose: 1500,
+      });
+
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
     } catch (err) {
       console.error(err);
-      setMessage(
+      const backendMsg =
         err.response?.data?.message ||
-          "Error resetting password. Check OTP and try again."
-      );
+        "Error resetting password. Check OTP and try again.";
+
+      toast.error(backendMsg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100">
-      <div className="w-full max-w-md bg-white rounded-xl shadow p-6 space-y-4">
-        <h1 className="text-2xl font-semibold text-center">Reset Password</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+      <ToastContainer />
 
-        {message && (
-          <p className="text-sm text-center text-red-500">{message}</p>
-        )}
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 space-y-6 border border-gray-200">
+        <div className="text-center">
+          <FaLockOpen className="w-8 h-8 mx-auto mb-2 text-blue-600" />
+          <h1 className="text-3xl font-extrabold text-gray-900">
+            Reset Password
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">Step {step} of 2</p>
+        </div>
 
+        {/* STEP 1: Enter email & request OTP */}
         {step === 1 && (
-          <form onSubmit={handleRequestOtp} className="space-y-4">
+          <form
+            onSubmit={handleRequestOtp}
+            className="space-y-6"
+            autoComplete="off"
+          >
             <div>
-              <label className="block text-sm mb-1">Email</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email address
+              </label>
               <input
                 type="email"
-                className="w-full border rounded px-3 py-2 text-sm"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow duration-200"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="you@example.com"
+                autoComplete="email"
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-60"
+              className="cursor-pointer w-full bg-blue-600 text-white py-2.5 rounded-lg font-semibold shadow-md hover:bg-blue-700 active:scale-[0.98] transition duration-150 flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {loading ? "Sending OTP..." : "Send OTP"}
+              {loading ? (
+                <>
+                  <FaSpinner className="animate-spin w-4 h-4" />
+                  <span>Sending OTP...</span>
+                </>
+              ) : (
+                <>
+                  <FaEnvelope className="w-4 h-4" />
+                  <span>Send OTP</span>
+                </>
+              )}
             </button>
           </form>
         )}
 
+        {/* STEP 2: Verify OTP & set new password */}
         {step === 2 && (
-          <form onSubmit={handleVerify} className="space-y-4">
+          <form
+            onSubmit={handleVerify}
+            className="space-y-6"
+            autoComplete="off"
+          >
             <div>
-              <label className="block text-sm mb-1">Email</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
               <input
                 type="email"
-                className="w-full border rounded px-3 py-2 text-sm bg-slate-100"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm bg-gray-100 text-gray-500"
                 value={email}
                 disabled
               />
             </div>
+
             <div>
-              <label className="block text-sm mb-1">OTP</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                OTP
+              </label>
               <input
                 type="text"
-                className="w-full border rounded px-3 py-2 text-sm"
+                name="otp"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow duration-200"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 required
                 placeholder="Enter OTP from email"
+                autoComplete="one-time-code"
+                inputMode="numeric"
+                maxLength="6"
               />
             </div>
+
             <div>
-              <label className="block text	sm mb-1">New Password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                New Password
+              </label>
               <input
                 type="password"
-                className="w-full border rounded px-3 py-2 text-sm"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow duration-200"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 required
                 placeholder="Enter new password"
+                autoComplete="new-password"
               />
             </div>
+
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 disabled:opacity-60"
+              className="cursor-pointer w-full bg-blue-600 text-white py-2.5 rounded-lg font-semibold shadow-md hover:bg-blue-700 active:scale-[0.98] transition duration-150 flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {loading ? "Resetting..." : "Reset Password"}
+              {loading ? (
+                <>
+                  <FaSpinner className="animate-spin w-4 h-4" />
+                  <span>Resetting...</span>
+                </>
+              ) : (
+                <>
+                  <FaKey className="w-4 h-4" />
+                  <span>Reset Password</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              className="cursor-pointer w-full mt-2 text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors duration-150"
+              onClick={() => {
+                setStep(1);
+                setOtp("");
+                setNewPassword("");
+              }}
+            >
+              Change email
             </button>
           </form>
         )}
 
-        <p className="text-center text-sm">
-          <Link to="/login" className="text-blue-600 hover:underline">
+        <div className="text-center pt-4 border-t border-gray-100">
+          <Link
+            to="/login"
+            className="text-blue-600 font-medium hover:underline cursor-pointer transition-colors duration-150"
+          >
             Back to login
           </Link>
-        </p>
+        </div>
       </div>
     </div>
   );
