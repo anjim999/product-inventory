@@ -42,10 +42,10 @@
 //       html,
 //     });
 
-//     console.log("📧 OTP Email sent via Brevo:", info.messageId);
+//     console.log("OTP Email sent via Brevo:", info.messageId);
 //     return { success: true };
 //   } catch (error) {
-//     console.error("❌ Error sending Brevo email:", error);
+//     console.error("Error sending Brevo email:", error);
 //     return { success: false, error };
 //   }
 // }
@@ -102,16 +102,16 @@ async function sendOtpEmail({ to, otp, purpose }) {
 
     if (!res.ok) {
       const text = await res.text();
-      console.error('❌ Brevo API error:', res.status, text);
+      console.error('Brevo API error:', res.status, text);
       return { success: false, error: new Error(`Brevo API ${res.status}`) };
     }
 
     const data = await res.json();
-    console.log('📧 OTP Email sent via Brevo API:', data.messageId || data);
+    console.log('OTP Email sent via Brevo API:', data.messageId || data);
 
     return { success: true };
   } catch (error) {
-    console.error('❌ Error sending Brevo email via API:', error);
+    console.error('Error sending Brevo email via API:', error);
     return { success: false, error };
   }
 }
@@ -136,7 +136,7 @@ module.exports = { sendOtpEmail };
 // async function sendOtpEmail({ to, otp, purpose }) {
 //   if (!RESEND_API_KEY) {
 //     console.warn(
-//       "⚠️ RESEND_API_KEY is not set. Cannot send OTP email. OTP:",
+//       "RESEND_API_KEY is not set. Cannot send OTP email. OTP:",
 //       otp,
 //       "to:",
 //       to
@@ -183,10 +183,10 @@ module.exports = { sendOtpEmail };
 //       }
 //     );
 
-//     console.log("📧 OTP Email Sent via Resend:", res.data);
+//     console.log("OTP Email Sent via Resend:", res.data);
 //     return { success: true };
 //   } catch (error) {
-//     console.error("❌ Error sending OTP email via Resend:", error.response?.data || error.message);
+//     console.error("Error sending OTP email via Resend:", error.response?.data || error.message);
 //     return { success: false, error };
 //   }
 // }
@@ -262,7 +262,7 @@ module.exports = { sendOtpEmail };
 //     console.log("OTP Email Sent Successfully:", info.messageId);
 //     return { success: true };
 //   } catch (error) {
-//     console.error("❌ Error sending OTP email:", error);
+//     console.error("Error sending OTP email:", error);
 
 //     // Return error instead of throwing, to prevent 500 in route
 //     return { success: false, error };
