@@ -15,7 +15,6 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // helper to keep email consistent: trim + lowercase
   const normalizeEmail = (value) => value.trim().toLowerCase();
 
   const handleRequestOtp = async (e) => {
@@ -136,7 +135,6 @@ export default function ForgotPasswordPage() {
           </form>
         )}
 
-        {/* STEP 2: Verify OTP & set new password */}
         {step === 2 && (
           <form
             onSubmit={handleVerify}

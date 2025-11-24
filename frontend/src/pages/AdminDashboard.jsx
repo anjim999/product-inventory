@@ -157,7 +157,7 @@ export default function AdminDashboard() {
           ${contentVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
         `} */}
       <main
-       className="min-w-full mx-auto px-4 py-6 flex gap-4 mt-13"
+       className="w-full mx-auto px-4 py-6 flex gap-4 mt-13"
           
       >
         <section className="flex flex-col gap-4 w-full">
