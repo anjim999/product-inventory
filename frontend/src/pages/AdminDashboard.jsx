@@ -210,7 +210,6 @@ export default function AdminDashboard() {
               Icon={FaBox}
               colorClass={{ border: 'border-emerald-500', icon: 'text-emerald-500' }}
             />
-            {/* You can add another card here if needed to fill the grid */}
           </div>
 
           {loading && (
@@ -220,8 +219,9 @@ export default function AdminDashboard() {
             </p>
           )}
 
-          {/* Users Table - kept responsive like Products table */}
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+          {/* ✅ Users Table - wrapper now matches ProductTable behavior */}
+          <div className="overflow-x-auto bg-white rounded-xl shadow-lg border border-slate-100">
+            {/* Header inside card */}
             <div className="px-4 md:px-6 py-3 md:py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 bg-slate-50">
               <p className="text-xs md:text-sm text-slate-600 font-medium">
                 Showing{' '}
@@ -245,7 +245,8 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            <div className="overflow-x-auto max-h-[40rem] overflow-y-auto relative">
+            {/* Inner scroll only vertical (same as ProductTable) */}
+            <div className="max-h-[40rem] overflow-y-auto relative">
               <table className="min-w-full text-xs md:text-sm">
                 <thead className="bg-slate-100 sticky top-0 shadow-md z-10">
                   <tr className="text-[11px] md:text-xs text-slate-600 uppercase tracking-wider">
