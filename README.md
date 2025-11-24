@@ -209,3 +209,8 @@ Shirt,pcs,Clothing,Levis,50,In Stock,
 This project was created for learning and assignment purposes, with focus on practical full-stack development and real-world features like authentication, mail services, and database design.
 
 
+Frontend Live URL:
+https://product-inventory-nu.vercel.app/
+
+Backend API URL:
+https://product-inventory-gmus.onrender.com
