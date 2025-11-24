@@ -17,23 +17,19 @@ export default function ImportExportBar({ onImported }) {
 
       console.log("Import result:", res.data);
 
-      // ✅ Toast instead of alert
       toast.success(
         `Import completed. Added: ${res.data.added}, Skipped: ${res.data.skipped}`
       );
 
-      // refresh product list
       onImported?.();
     } catch (err) {
       console.error("Import error:", err);
 
-      // ✅ Toast error
       toast.error(
         err.response?.data?.message ||
           "Error importing CSV. Please try again."
       );
     } finally {
-      // reset file input so same file can be selected again if needed
       e.target.value = "";
     }
   };
@@ -59,12 +55,10 @@ export default function ImportExportBar({ onImported }) {
 
       window.URL.revokeObjectURL(url);
 
-      // ✅ Optional success toast
       toast.success("Products exported as CSV.");
     } catch (err) {
       console.error("Export error:", err);
 
-      // ✅ Toast error
       toast.error(
         err.response?.data?.message ||
           "Error exporting CSV. Please try again."
@@ -74,7 +68,6 @@ export default function ImportExportBar({ onImported }) {
 
   return (
     <div className="flex items-center gap-3">
-      {/* Import CSV */}
       <label className="bg-slate-200 hover:bg-slate-300 text-sm px-3 py-1.5 rounded cursor-pointer">
         Import CSV
         <input
@@ -85,7 +78,6 @@ export default function ImportExportBar({ onImported }) {
         />
       </label>
 
-      {/* Export CSV */}
       <button
         type="button"
         onClick={handleExport}

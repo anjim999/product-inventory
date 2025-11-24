@@ -4,8 +4,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axiosClient";
 import { FaSignInAlt, FaSpinner } from "react-icons/fa";
-
-// Toastify
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -32,7 +30,6 @@ export default function LoginPage() {
 
       login({ token, user });
 
-      // SUCCESS TOAST — 200 OK
       toast.success("Login successful!", { autoClose: 1500 });
 
       setTimeout(() => {
@@ -59,7 +56,6 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
-          {/* Email */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Email address
@@ -75,7 +71,6 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* Password */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Password

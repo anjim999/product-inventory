@@ -1,23 +1,24 @@
+// backend/src/server.js
 const express = require('express');
 const cors = require('cors');
-const path = require('path'); // 👈 added
+const path = require('path');
 const { PORT } = require('./config/env');
 const errorHandler = require('./middleware/errorHandler');
-require('./db');
+const db = require('./db'); 
 
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const adminRoutes = require('./routes/admin');
+
 const app = express();
 
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://product-inventory-nu.vercel.app' // 👈 no trailing slash
+  'https://product-inventory-nu.vercel.app',
 ];
 
 const corsOptions = {
   origin(origin, callback) {
-    // Allow requests with no origin (like Postman / curl)
     if (!origin) return callback(null, true);
 
     if (allowedOrigins.includes(origin)) {
@@ -31,18 +32,11 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
-// Handle preflight for all routes using SAME options
 app.options('*', cors(corsOptions));
 
-// For JSON bodies
 app.use(express.json());
-
-// (Optional but nice) for urlencoded forms
 app.use(express.urlencoded({ extended: true }));
 
-// 👇 Serve uploaded files (images / pdfs) at /uploads/...
-// upload.js stores in ../../uploads (project root /uploads)
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 app.get('/', (req, res) => {
@@ -52,9 +46,13 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/admin', adminRoutes);
-app.use(errorHandler);
-app.use('/api/products', require('./routes/products'));
 
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
-});
+app.use(errorHandler);
+
+module.exports = app;
+
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server listening on port ${PORT}`);
+  });
+}

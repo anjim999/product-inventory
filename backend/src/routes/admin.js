@@ -5,21 +5,8 @@ const auth = require('../middleware/auth');
 const requireAdmin = require('../middleware/requireAdmin');
 
 const router = express.Router();
-
-// all /api/admin routes require auth + admin
 router.use(auth);
 router.use(requireAdmin);
-
-/**
- * GET /api/admin/users
- * Returns all users with stats:
- * - id
- * - name
- * - email
- * - role
- * - created_at
- * - productCount (how many products they own)
- */
 router.get('/users', (req, res) => {
   const sql = `
     SELECT
@@ -45,12 +32,6 @@ router.get('/users', (req, res) => {
   });
 });
 
-/**
- * DELETE /api/admin/users/:id
- * Deletes a non-admin user by id.
- * - Only admins can call this (protected by middleware above).
- * - Refuses to delete admin accounts for safety.
- */
 router.delete('/users/:id', (req, res) => {
   const userId = parseInt(req.params.id, 10);
 
@@ -58,7 +39,6 @@ router.delete('/users/:id', (req, res) => {
     return res.status(400).json({ message: 'Invalid user id' });
   }
 
-  // 1) Check if user exists
   const findSql = 'SELECT id, email, role FROM users WHERE id = ?';
   db.get(findSql, [userId], (err, user) => {
     if (err) {
@@ -70,14 +50,12 @@ router.delete('/users/:id', (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // 2) Do not allow deleting admins
     if (user.role === 'admin') {
       return res
         .status(400)
         .json({ message: 'Cannot delete admin accounts' });
     }
 
-    // 3) Delete user
     const deleteSql = 'DELETE FROM users WHERE id = ?';
     db.run(deleteSql, [userId], function (deleteErr) {
       if (deleteErr) {

@@ -11,7 +11,6 @@ import {
   FaSort,
 } from 'react-icons/fa';
 
-// ✅ Toastify: only use `toast` here (container is global in App.jsx)
 import { toast } from 'react-toastify';
 
 const API_BASE_URL =
@@ -89,7 +88,6 @@ export default function ProductTable({
         },
       });
 
-      // ✅ Toast autoClose handled by global ToastContainer
       toast.success('Product updated successfully!');
 
       setEditingId(null);
@@ -152,7 +150,6 @@ export default function ProductTable({
 
   return (
     <>
-      {/* ❌ Removed <ToastContainer /> from here */}
 
       <div className="overflow-x-auto bg-white rounded-xl shadow-lg border border-slate-100">
         <div className="max-h-[30rem] overflow-y-auto no-scrollbar">
@@ -246,7 +243,6 @@ export default function ProductTable({
                     } cursor-pointer`}
                     onClick={() => handleRowClick(p)}
                   >
-                    {/* Image */}
                     <td className="px-3 py-2">
                       {imgSrc ? (
                         <img
@@ -261,7 +257,6 @@ export default function ProductTable({
                       )}
                     </td>
 
-                    {/* Name */}
                     <td
                       className="px-3 py-2 font-medium text-slate-800"
                       onClick={(e) => e.stopPropagation()}
@@ -286,7 +281,6 @@ export default function ProductTable({
                       )}
                     </td>
 
-                    {/* Unit */}
                     <td
                       className="px-3 py-2 text-slate-600"
                       onClick={(e) => e.stopPropagation()}
@@ -304,7 +298,6 @@ export default function ProductTable({
                       )}
                     </td>
 
-                    {/* Category */}
                     <td
                       className="px-3 py-2 text-slate-600"
                       onClick={(e) => e.stopPropagation()}
@@ -322,7 +315,6 @@ export default function ProductTable({
                       )}
                     </td>
 
-                    {/* Brand */}
                     <td
                       className="px-3 py-2 text-slate-600"
                       onClick={(e) => e.stopPropagation()}
@@ -360,7 +352,6 @@ export default function ProductTable({
                       )}
                     </td>
 
-                    {/* Status */}
                     <td className="px-3 py-2">
                       <span
                         className={`inline-flex px-2 py-1 rounded-full text-xs font-medium border ${statusLabel.className}`}
@@ -458,7 +449,6 @@ export default function ProductTable({
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
       {showDeleteModal && productToDelete && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"

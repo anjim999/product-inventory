@@ -17,12 +17,10 @@ export default function Pagination({ page, totalPages, onChange }) {
     if (page < totalPages) onChange(page + 1);
   };
 
-  // Build an array [1, 2, 3, ..., totalPages]
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   return (
     <div className="flex items-center justify-between mt-3 text-sm bg-white rounded-xl border border-slate-200 px-4 py-3">
-      {/* Prev button */}
       <button
         onClick={prev}
         disabled={page === 1}
@@ -32,7 +30,6 @@ export default function Pagination({ page, totalPages, onChange }) {
         <span>Previous</span>
       </button>
 
-      {/* Center: page numbers + current indicator */}
       <div className="flex items-center gap-2">
         <span className="text-xs text-slate-600 font-medium mr-1">
           Page {page} of {totalPages}
@@ -53,7 +50,6 @@ export default function Pagination({ page, totalPages, onChange }) {
         ))}
       </div>
 
-      {/* Next button */}
       <button
         onClick={next}
         disabled={page === totalPages}

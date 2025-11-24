@@ -3,8 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axiosClient";
 import { useAuth } from "../context/AuthContext";
 import { FaUserPlus, FaSpinner, FaEnvelope, FaLock } from "react-icons/fa";
-
-// Toastify
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -25,7 +23,6 @@ export default function RegisterPage() {
     try {
       await api.post("/api/auth/register-request-otp", { email });
 
-      // 200 OK — OTP sent
       toast.success("OTP sent to your email. Please check your inbox.", {
         autoClose: 2000,
       });
@@ -56,7 +53,6 @@ export default function RegisterPage() {
 
       login(res.data);
 
-      // 200 OK — registration success
       toast.success("Registration successful!", { autoClose: 1500 });
 
       setTimeout(() => {
@@ -93,7 +89,6 @@ export default function RegisterPage() {
             className="space-y-6"
             autoComplete="off"
           >
-            {/* Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Name
@@ -109,7 +104,6 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Email address
@@ -151,7 +145,6 @@ export default function RegisterPage() {
             className="space-y-6"
             autoComplete="off"
           >
-            {/* Name (Disabled for review) */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Name
@@ -164,7 +157,6 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* Email (Disabled for review) */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Email
@@ -177,7 +169,6 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* OTP */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 OTP
@@ -196,7 +187,6 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* Password */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Create Password

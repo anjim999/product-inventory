@@ -4,7 +4,6 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axiosClient";
 import { FaLockOpen, FaSpinner, FaEnvelope, FaKey } from "react-icons/fa";
 
-// Toastify
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -25,7 +24,7 @@ export default function ForgotPasswordPage() {
 
     try {
       const normalizedEmail = normalizeEmail(email);
-      setEmail(normalizedEmail); // store normalized version so step 2 & login use same email
+      setEmail(normalizedEmail); 
 
       await api.post("/api/auth/forgot-password-request", {
         email: normalizedEmail,
@@ -63,7 +62,7 @@ export default function ForgotPasswordPage() {
         newPassword,
       });
 
-      // 200 OK – password reset
+      // 200 OK – password reset successful
       toast.success("Password reset successful. Redirecting to login...", {
         autoClose: 1500,
       });

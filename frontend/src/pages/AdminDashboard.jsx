@@ -5,7 +5,6 @@ import Header from '../components/Header';
 import Pagination from '../components/Pagination';
 import { FaTrashAlt, FaSpinner, FaUsers, FaBox } from 'react-icons/fa';
 
-// Toastify
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -17,11 +16,9 @@ export default function AdminDashboard() {
   const [deletingId, setDeletingId] = useState(null);
   const [contentVisible, setContentVisible] = useState(false);
 
-  // Pagination
   const [page, setPage] = useState(1);
   const itemsPerPage = 3;
 
-  // Modal / messages
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
 
@@ -68,13 +65,11 @@ export default function AdminDashboard() {
     setPage(1);
   }, [search]);
 
-  // Remove admin accounts from list
   const nonAdminUsers = users.filter((u) => u.role !== 'admin');
 
   const totalUsers = nonAdminUsers.length;
   const totalProducts = productSummary?.totalProducts || 0;
 
-  // Search filter
   const normalizedSearch = search.trim().toLowerCase();
   const filteredUsers = nonAdminUsers.filter((u) => {
     if (!normalizedSearch) return true;
@@ -83,7 +78,6 @@ export default function AdminDashboard() {
     return name.includes(normalizedSearch) || email.includes(normalizedSearch);
   });
 
-  // Pagination logic
   const totalPages = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
 
   useEffect(() => {
@@ -103,7 +97,6 @@ export default function AdminDashboard() {
     setPage(newPage);
   };
 
-  // Delete handlers
   const confirmDeletion = (user) => {
     setUserToDelete(user);
     setShowDeleteModal(true);
@@ -134,7 +127,6 @@ export default function AdminDashboard() {
     setUserToDelete(null);
   };
 
-  // Card style similar to Products summary cards
   const cardStyle =
     'bg-white rounded-xl shadow-lg border-l-4 p-4 space-y-1 transition-all duration-300 transform cursor-default hover:shadow-xl hover:scale-[1.03]';
 
@@ -173,9 +165,7 @@ export default function AdminDashboard() {
         `}
           
       >
-        {/* Top header - similar layout feel to ProductsPage */}
         <section className="flex flex-col gap-4">
-          {/* Page Header & Search / Actions */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3 border-slate-200">
             <div>
               <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
@@ -202,7 +192,6 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Summary Cards - match grid behavior from ProductsPage */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <SummaryCard
               title="Total Users"
@@ -225,9 +214,7 @@ export default function AdminDashboard() {
             </p>
           )}
 
-          {/* ✅ Users Table - wrapper now matches ProductTable behavior */}
           <div className="overflow-x-auto bg-white rounded-xl shadow-lg border border-slate-100">
-            {/* Header inside card */}
             <div className="px-4 md:px-6 py-3 md:py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 bg-slate-50">
               <p className="text-xs md:text-sm text-slate-600 font-medium">
                 Showing{' '}
@@ -251,7 +238,6 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            {/* Inner scroll only vertical (same as ProductTable) */}
             <div className="max-h-[40rem] overflow-y-auto relative">
               <table className="min-w-full text-xs md:text-sm">
                 <thead className="bg-slate-100 sticky top-0 shadow-md z-10">
@@ -333,7 +319,6 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Pagination (same style as Products) */}
           {filteredUsers.length > 0 && (
             <div className="mt-2">
               <Pagination
@@ -345,7 +330,6 @@ export default function AdminDashboard() {
           )}
         </section>
 
-        {/* Delete Modal */}
         {showDeleteModal && userToDelete && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30"

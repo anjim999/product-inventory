@@ -12,7 +12,7 @@ api.interceptors.request.use(
       return config;
     }
 
-    const stored = localStorage.getItem("auth"); // 👈 matches AuthContext
+    const stored = localStorage.getItem("auth"); 
     if (stored) {
       try {
         const parsed = JSON.parse(stored);

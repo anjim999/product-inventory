@@ -42,7 +42,6 @@ export default function InventoryHistorySidebar({ product, onClose }) {
 
     fetchHistory();
 
-    // Reset scroll when a new product is selected
     const sidebarContent = document.getElementById('sidebar-content');
     if (sidebarContent) sidebarContent.scrollTop = 0;
   }, [product]);
@@ -68,7 +67,6 @@ export default function InventoryHistorySidebar({ product, onClose }) {
     <aside
       className="fixed right-0 top-0 mt-16 h-[calc(100vh-4rem)] w-full max-w-md bg-slate-50 border-l border-slate-200 shadow-2xl flex flex-col z-40 transform translate-x-0 transition-transform duration-300"
     >
-      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-white shadow-sm flex-shrink-0">
         <h3 className="font-bold text-base text-slate-800 flex items-center gap-2">
           <FaEye className="w-4 h-4 text-indigo-500" />
@@ -82,9 +80,7 @@ export default function InventoryHistorySidebar({ product, onClose }) {
         </button>
       </div>
 
-      {/* Main Content Area */}
       <div id="sidebar-content" className="p-4 space-y-5 overflow-y-auto flex-1">
-        {/* Product Image */}
         {imgSrc && (
           <div className="w-full">
             <img
@@ -95,7 +91,6 @@ export default function InventoryHistorySidebar({ product, onClose }) {
           </div>
         )}
 
-        {/* Name & Main Status */}
         <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-100">
           <p className="text-xs text-slate-500 mb-0.5">Name</p>
           <p className="text-lg font-extrabold text-slate-900">{product.name}</p>
@@ -109,7 +104,6 @@ export default function InventoryHistorySidebar({ product, onClose }) {
           </div>
         </div>
 
-        {/* Core Details Grid */}
         <div className="grid grid-cols-2 gap-3 p-3 bg-white rounded-lg shadow-sm border border-slate-100">
           <DetailItem label="Category" value={product.category} />
           <DetailItem label="Brand" value={product.brand} />
@@ -121,7 +115,6 @@ export default function InventoryHistorySidebar({ product, onClose }) {
           />
         </div>
 
-        {/* Description */}
         <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-100">
           <p className="text-xs text-slate-500 mb-1">Description / Notes</p>
           <p className="text-sm text-slate-700 whitespace-pre-line">
@@ -131,7 +124,6 @@ export default function InventoryHistorySidebar({ product, onClose }) {
           </p>
         </div>
 
-        {/* Timestamps */}
         <div className="grid grid-cols-1 gap-1 text-[11px] text-slate-500 border-t pt-3">
           <DetailItem
             label="Created At"
@@ -143,7 +135,6 @@ export default function InventoryHistorySidebar({ product, onClose }) {
           />
         </div>
 
-        {/* Inventory History Section */}
         <div className="mt-4 pt-3 border-t">
           <button
             className="w-full text-sm px-3 py-2 rounded-lg bg-slate-100 border border-slate-300 text-slate-700 font-semibold hover:bg-slate-200 transition duration-150 flex items-center justify-center gap-2"
@@ -237,7 +228,6 @@ export default function InventoryHistorySidebar({ product, onClose }) {
   );
 }
 
-// Helper component for cleaner detail rendering
 const DetailItem = ({ label, value, className = '' }) => (
   <div className="flex flex-col">
     <p className="text-xs text-slate-500">{label}</p>

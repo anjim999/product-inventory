@@ -4,17 +4,14 @@ import { createContext, useContext, useEffect, useState } from "react";
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  // auth = { token, user } or null
   const [auth, setAuth] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Load auth from localStorage on first render
   useEffect(() => {
-    const stored = localStorage.getItem("auth"); // 👈 KEEP KEY = "auth"
+    const stored = localStorage.getItem("auth"); 
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        // basic sanity check
         if (parsed && parsed.token) {
           setAuth(parsed);
         } else {
@@ -28,14 +25,13 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  // data should be { message, token, user }
   const login = (data) => {
     const payload = {
       token: data.token,
       user: data.user
     };
     setAuth(payload);
-    localStorage.setItem("auth", JSON.stringify(payload)); // 👈 same key used by axios
+    localStorage.setItem("auth", JSON.stringify(payload)); 
   };
 
   const logout = () => {

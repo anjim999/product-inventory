@@ -10,7 +10,6 @@ const { sendOtpEmail } = require("../utils/mailer");
 
 const router = express.Router();
 
-// helper: validation wrapper
 const validate = (rules) => [
   ...rules,
   (req, res, next) => {
@@ -23,13 +22,8 @@ const validate = (rules) => [
   }
 ];
 
-// small helper for email normalization (avoids case / whitespace issues)
 const normalizeEmail = (email) => email.trim().toLowerCase();
 
-/**
- * POST /api/auth/register-request-otp
- * body: { email }
- */
 router.post("/register-request-otp", async (req, res) => {
   try {
     const rawEmail = req.body.email || "";
@@ -72,10 +66,6 @@ router.post("/register-request-otp", async (req, res) => {
   }
 });
 
-/**
- * POST /api/auth/register-verify
- * body: { name, email, otp, password }
- */
 router.post(
   "/register-verify",
   validate([
@@ -120,7 +110,7 @@ router.post(
             db.run("UPDATE otps SET used = 1 WHERE id = ?", [otpRow.id]);
 
             const userId = this.lastID;
-            const role = "user"; // new users are normal users
+            const role = "user";
 
             const token = jwt.sign(
               { userId, email, name, role },
@@ -140,10 +130,6 @@ router.post(
   }
 );
 
-/**
- * POST /api/auth/login
- * body: { email, password }
- */
 router.post(
   "/login",
   validate([
@@ -197,10 +183,6 @@ router.post(
   }
 );
 
-/**
- * POST /api/auth/forgot-password-request
- * body: { email }
- */
 router.post(
   "/forgot-password-request",
   validate([body("email").isEmail()]),
@@ -217,15 +199,12 @@ router.post(
           return res.status(500).json({ message: "DB error" });
         }
 
-        // IMPORTANT FIX:
-        // If user does not exist, we DO NOT create OTP or pretend reset is possible.
         if (!userRow) {
           console.warn(
             "Forgot password requested for non-existing email:",
             email
           );
-          // For security, you can still send a generic success message,
-          // but do not create an OTP.
+          
           return res.json({
             message:
               "If the email exists, an OTP has been sent to reset the password"
@@ -264,10 +243,6 @@ router.post(
   }
 );
 
-/**
- * POST /api/auth/forgot-password-verify
- * body: { email, otp, newPassword }
- */
 router.post(
   "/forgot-password-verify",
   validate([
@@ -306,9 +281,6 @@ router.post(
               console.error("DB error updating password:", err2);
               return res.status(500).json({ message: "DB error" });
             }
-
-            // IMPORTANT FIX:
-            // If no rows were updated, then there is no user with that email.
             if (this.changes === 0) {
               console.warn(
                 "Password reset attempted for non-existing email:",

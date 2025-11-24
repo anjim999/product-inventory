@@ -9,20 +9,15 @@ const upload = require('../middleware/upload');
 
 const router = express.Router();
 
-// Protect all routes below with JWT auth
 router.use(auth);
 
-// Low stock threshold
 const LOW_STOCK_THRESHOLD = 5;
 
-/**
- * Helper: build WHERE + params based on user role & filters
- */
+
 function buildProductWhere({ user, search, category, lowStockOnly }) {
   const params = [];
   let where = 'WHERE is_deleted = 0';
 
-  // non-admin → only show own products
   if (!user || user.role !== 'admin') {
     where += ' AND owner_id = ?';
     params.push(user.userId);
@@ -36,12 +31,10 @@ function buildProductWhere({ user, search, category, lowStockOnly }) {
 
   const catTrim = (category || '').trim();
   if (catTrim) {
-    // normalize both sides (TRIM + LOWER)
     where += ' AND TRIM(LOWER(category)) = TRIM(LOWER(?))';
     params.push(catTrim);
   }
 
-  // low stock = stock > 0 AND stock <= threshold
   if (lowStockOnly === 'true' || lowStockOnly === true) {
     where += ' AND stock > 0 AND stock <= ?';
     params.push(LOW_STOCK_THRESHOLD);
@@ -50,10 +43,7 @@ function buildProductWhere({ user, search, category, lowStockOnly }) {
   return { where, params };
 }
 
-/**
- * GET /api/products
- * Query: page, limit, search, category, sortBy, sortOrder, lowStockOnly
- */
+
 router.get('/', (req, res) => {
   const user = req.user;
 
@@ -107,9 +97,7 @@ router.get('/', (req, res) => {
   });
 });
 
-/**
- * GET /api/products/summary
- */
+
 router.get('/summary', (req, res) => {
   const user = req.user;
 
@@ -140,9 +128,7 @@ router.get('/summary', (req, res) => {
   });
 });
 
-/**
- * GET /api/products/search?name=abc
- */
+
 router.get('/search', (req, res) => {
   const { name = '' } = req.query;
   const user = req.user;
@@ -161,9 +147,7 @@ router.get('/search', (req, res) => {
   });
 });
 
-/**
- * GET /api/products/:id/history
- */
+
 router.get('/:id/history', (req, res) => {
   const { id } = req.params;
 
@@ -180,9 +164,7 @@ router.get('/:id/history', (req, res) => {
   );
 });
 
-/**
- * PUT /api/products/:id
- */
+
 router.put(
   '/:id',
   upload.single('image'),
@@ -295,9 +277,6 @@ router.put(
   }
 );
 
-/**
- * POST /api/products/import (CSV)
- */
 router.post('/import', upload.single('file'), (req, res) => {
   const user = req.user;
 
@@ -386,9 +365,7 @@ router.post('/import', upload.single('file'), (req, res) => {
     });
 });
 
-/**
- * GET /api/products/export
- */
+
 router.get('/export', (req, res) => {
   const user = req.user;
 
@@ -431,9 +408,7 @@ router.get('/export', (req, res) => {
   });
 });
 
-/**
- * DELETE /api/products/:id (Hard delete)
- */
+
 router.delete('/:id', (req, res) => {
   const { id } = req.params;
   const user = req.user;
@@ -455,9 +430,6 @@ router.delete('/:id', (req, res) => {
   });
 });
 
-/**
- * POST /api/products (Add new)
- */
 router.post(
   '/',
   upload.single('image'),

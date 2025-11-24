@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import api from '../api/axiosClient';
-
-// Toastify
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -40,7 +38,6 @@ export default function AddProductModal({ onAdded }) {
 
       await api.post('/api/products', formData);
 
-      // ✅ Success toast (200 OK)
       toast.success('Product added successfully!', { autoClose: 1500 });
 
       onAdded();
@@ -55,7 +52,6 @@ export default function AddProductModal({ onAdded }) {
         description: '',
       });
     } catch (err) {
-      // ❌ Error toast
       toast.error(err?.response?.data?.message || 'Error adding product');
     } finally {
       setSubmitting(false);

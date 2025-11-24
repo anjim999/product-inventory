@@ -7,25 +7,23 @@ import ProductsPage from "./pages/ProductsPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 
-// ✅ Toastify (global)
 import { ToastContainer, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 export default function App() {
   return (
     <>
-      {/* ✅ One global ToastContainer for entire app */}
       <ToastContainer
         position="top-right"
-        autoClose={100}        // fast close
-        hideProgressBar         // no bar, feels snappier
+        autoClose={100}       
+        hideProgressBar         
         newestOnTop={true}
         closeOnClick
         pauseOnHover={false}
         pauseOnFocusLoss={false}
         draggable={false}
         theme="light"
-        transition={Slide}      // ⚡ fast animation
+        transition={Slide}      
       />
 
       <Routes>

@@ -10,10 +10,8 @@ import ProductTable from '../components/ProductTable';
 import InventoryHistorySidebar from '../components/InventoryHistorySidebar';
 import Pagination from '../components/Pagination';
 
-// Import necessary React Icons
 import { FaBox, FaExclamationTriangle, FaTimesCircle, FaTags } from 'react-icons/fa';
 
-// Helper component for clean card rendering (Using React Icons)
 const SummaryCard = ({ title, count, colorClass, hoverBg, IconComponent, iconColor }) => (
   <div
     className={`
@@ -40,12 +38,12 @@ const SummaryCard = ({ title, count, colorClass, hoverBg, IconComponent, iconCol
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
-  const [allCategories, setAllCategories] = useState([]); // For dropdown (original trimmed strings)
+  const [allCategories, setAllCategories] = useState([]);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState(''); // EXACT string selected from dropdown
+  const [category, setCategory] = useState(''); 
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -53,7 +51,6 @@ export default function ProductsPage() {
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [summary, setSummary] = useState(null);
 
-  // 🔹 Fetch dashboard summary (per logged-in user)
   const fetchSummary = async () => {
     try {
       const res = await api.get('/api/products/summary');
@@ -63,7 +60,6 @@ export default function ProductsPage() {
     }
   };
 
-  // 🔹 Fetch paginated products
   const fetchProducts = async (overridePage) => {
     const currentPage = overridePage || page;
     setLoading(true);
@@ -74,7 +70,6 @@ export default function ProductsPage() {
           page: currentPage,
           limit,
           search,
-          // send category EXACTLY as selected (backend handles LOWER/TRIM)
           category: category || '',
           sortBy,
           sortOrder,
@@ -87,7 +82,6 @@ export default function ProductsPage() {
       setPage(res.data.page);
       setTotalPages(res.data.totalPages);
 
-      // Keep union of all categories (trimmed, original case)
       setAllCategories((prev) => {
         const set = new Set(prev || []);
         fetchedProducts.forEach((p) => {
@@ -104,20 +98,16 @@ export default function ProductsPage() {
     }
   };
 
-  // 🔹 Refetch when filters/sort change (reset to page 1)
   useEffect(() => {
     fetchProducts(1);
     fetchSummary();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, category, sortBy, sortOrder, lowStockOnly]);
 
-  // 🔹 Pagination handler (called from <Pagination />)
   const handlePageChange = (p) => {
     setPage(p);
-    fetchProducts(p); // then fetch that page from backend
+    fetchProducts(p); 
   };
 
-  // 🔹 Reload after add/import/edit/delete
   const handleReload = () => {
     fetchProducts(1);
     fetchSummary();
@@ -137,57 +127,50 @@ export default function ProductsPage() {
       <Header />
       <main className="max-w-6xl mx-auto px-4 py-6 flex gap-4 mt-13">
         <section className="flex-1 flex flex-col gap-4">
-          {/* Summary cards */}
           {summary && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-              {/* Total Products Card (Green/Success) */}
               <SummaryCard
                 title="Total Products"
                 count={summary.totalProducts}
                 colorClass="border-green-500"
                 hoverBg="bg-green-50"
-                iconColor="#10b981" // emerald-500
+                iconColor="#10b981" 
                 IconComponent={FaBox}
               />
 
-              {/* Out of Stock Card (Red/Danger) */}
               <SummaryCard
                 title="Out of Stock"
                 count={summary.outOfStockCount}
                 colorClass="border-red-500"
                 hoverBg="bg-red-50"
-                iconColor="#ef4444" // red-500
+                iconColor="#ef4444" 
                 IconComponent={FaTimesCircle}
               />
 
-              {/* Low Stock Items Card (Orange/Warning) */}
               <SummaryCard
                 title="Low Stock Items"
                 count={summary.lowStockCount}
                 colorClass="border-orange-500"
                 hoverBg="bg-orange-50"
-                iconColor="#f97316" // orange-600
+                iconColor="#f97316" 
                 IconComponent={FaExclamationTriangle}
               />
 
-              {/* Categories Card (Blue/Info) */}
               <SummaryCard
                 title="Categories"
                 count={summary.categoryCount}
                 colorClass="border-blue-500"
                 hoverBg="bg-blue-50"
-                iconColor="#3b82f6" // blue-500
+                iconColor="#3b82f6" 
                 IconComponent={FaTags}
               />
             </div>
           )}
 
-          {/* Filters, search, actions */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <SearchBar value={search} onChange={setSearch} />
 
-              {/* Category Filter uses original category strings */}
               <CategoryFilter
                 categories={allCategories}
                 value={category}
@@ -214,10 +197,8 @@ export default function ProductsPage() {
             <ImportExportBar onImported={handleReload} />
           </div>
 
-          {/* Loading text */}
           {loading && <p className="text-sm text-slate-500">Loading products...</p>}
 
-          {/* Products table */}
           <ProductTable
             products={products}
             onReload={handleReload}
@@ -227,11 +208,9 @@ export default function ProductsPage() {
             onChangeSort={handleSortChange}
           />
 
-          {/* Pagination (Admin-style UI in Pagination.jsx) */}
           <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} />
         </section>
 
-        {/* Right side inventory history drawer */}
         <InventoryHistorySidebar
           product={selectedProduct}
           onClose={() => setSelectedProduct(null)}

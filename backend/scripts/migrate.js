@@ -1,8 +1,6 @@
 // backend/scripts/migrate.js
 const path = require('path');
 const db = require('../src/db');
-
-// CHANGE THIS to your admin email
 const ADMIN_EMAIL = 'veeranjaneyulumandagiri@gmail.com';
 
 console.log("Running DB migrations...\n");
