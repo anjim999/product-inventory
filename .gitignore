@@ -7,9 +7,9 @@ frontend/node_modules/
 .env
 *.env
 
-# SQLite databases
-*.db
-*.db-journal
+# # SQLite databases
+# *.db
+# *.db-journal
 
 # Uploads folder (images, PDFs)
 uploads/
