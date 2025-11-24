@@ -158,14 +158,14 @@ export default function AdminDashboard() {
     <div className="min-h-screen">
       <Header />
       <ToastContainer />
-
-      <main
-        className={`
+{/* {`
           max-w-6xl mx-auto px-4 py-6 mt-13
           flex flex-col gap-4
           transition-opacity duration-700 ease-out
           ${contentVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
-        `}
+        `} */}
+      <main
+       className="max-w-6xl mx-auto px-4 py-6 flex gap-4 mt-13"
       >
         {/* Top header - similar layout feel to ProductsPage */}
         <section className="flex flex-col gap-4">
