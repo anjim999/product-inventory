@@ -15,3 +15,16 @@ body {
 .no-scrollbar::-webkit-scrollbar {
   display: none;            
 }
+
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+* {
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}

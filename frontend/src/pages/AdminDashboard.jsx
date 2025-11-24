@@ -157,10 +157,15 @@ export default function AdminDashboard() {
           ${contentVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
         `} */}
       <main
-       className="w-full mx-auto px-4 py-6 flex gap-4 mt-13"
+       className= {`
+          max-w-6xl mx-auto px-4 py-6 mt-13
+          flex flex-col gap-4
+          transition-opacity duration-700 ease-out
+          ${contentVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
+        `}
           
       >
-        <section className="flex flex-col gap-4 w-full">
+        <section className="flex w flex-col gap-4 w-full">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3 border-slate-200">
             <div>
               <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
