@@ -213,4 +213,4 @@ Frontend Live URL:
 https://product-inventory-nu.vercel.app/
 
 Backend API URL:
-https://product-inventory-gmus.onrender.com
+https://product-inventory-1-u9zq.onrender.com

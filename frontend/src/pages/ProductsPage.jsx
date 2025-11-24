@@ -1,5 +1,4 @@
 // frontend/src/pages/ProductsPage.jsx
-
 import { useEffect, useState } from 'react';
 import api from '../api/axiosClient';
 import Header from '../components/Header';
@@ -102,7 +101,6 @@ export default function ProductsPage() {
   useEffect(() => {
     fetchProducts(1);
     fetchSummary();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, category, sortBy, sortOrder, lowStockOnly]);
 
   const handlePageChange = (p) => {
@@ -169,27 +167,27 @@ export default function ProductsPage() {
             </div>
           )}
 
-          {/* Mobile-only Import/Export (ORIGINAL: Hidden on desktop) */}
           <div className="w-full md:hidden">
             <ImportExportBar onImported={handleReload} />
           </div>
 
-          {/* MAIN CONTROL ROW (Desktop Layout) */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            
-            {/* LEFT SIDE (Mobile/Small Screens): Original grouping preserved */}
+        
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 md:hidden">
               <div className="flex-1 min-w-0">
                 <SearchBar value={search} onChange={setSearch} />
               </div>
+              
               <div className="flex items-center gap-2 flex-wrap">
-                <div className="flex-1 sm:flex-initial sm:min-w-[120px]">
+                
+                <div className="flex-shrink-0"> 
                   <CategoryFilter
                     categories={allCategories}
                     value={category}
                     onChange={setCategory}
                   />
                 </div>
+                
                 <button
                   type="button"
                   onClick={toggleLowStock}
@@ -201,26 +199,23 @@ export default function ProductsPage() {
                 >
                   {lowStockOnly ? 'Low Stock ✓' : 'Low Stock'}
                 </button>
-                <div className="flex-shrink-0">
+                
+                {/* Add Product Button */}
+                <div className="flex-shrink-0 flex-1">
                   <AddProductModal onAdded={handleReload} />
                 </div>
               </div>
             </div>
 
 
-            {/* LEFT SIDE (Desktop/Large Screens): TIGHT GROUPING */}
-            {/* Hidden on small screens, appears on desktop */}
             <div className="hidden md:flex items-center gap-1 flex-1 min-w-0"> 
               
-              {/* Search Bar */}
               <div className="flex-1 min-w-0 md:max-w-xs">
                 <SearchBar value={search} onChange={setSearch} />
               </div>
 
-              {/* Filters + Add Button (REDUCED GAP TO gap-1) */}
               <div className="flex items-center flex-shrink-0 gap-1"> 
                 
-                {/* Category Filter */}
                 <div className="flex-shrink-0">
                   <CategoryFilter
                     categories={allCategories}
@@ -229,7 +224,6 @@ export default function ProductsPage() {
                   />
                 </div>
 
-                {/* Low Stock Toggle (REDUCED GAP) */}
                 <button
                   type="button"
                   onClick={toggleLowStock}
@@ -244,7 +238,6 @@ export default function ProductsPage() {
                   {lowStockOnly ? 'Low Stock ✓' : 'Low Stock'}
                 </button>
 
-                {/* Add Product Button (REDUCED GAP) */}
                 <div className="flex-shrink-0">
                   <AddProductModal onAdded={handleReload} />
                 </div>
@@ -252,7 +245,6 @@ export default function ProductsPage() {
             </div>
 
 
-            {/* RIGHT SIDE: Import/Export Bar (Hidden on mobile, appears on far right on desktop) */}
             <div className="hidden md:block flex-shrink-0">
               <ImportExportBar onImported={handleReload} />
             </div>
@@ -261,7 +253,6 @@ export default function ProductsPage() {
 
           {loading && <p className="text-xs md:text-sm text-slate-500">Loading products...</p>}
 
-          {/* Product Table */}
           <div className="overflow-x-auto -mx-2 md:mx-0">
             <div className="inline-block min-w-full align-middle px-2 md:px-0">
               <ProductTable
