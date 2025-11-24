@@ -7,12 +7,10 @@ beforeAll(done => {
   db.run("DELETE FROM products", () => done());
 });
 
-// afterAll(done => db.close(done));
 
 describe("CSV Import", () => {
 
   test("Import valid CSV", async () => {
-    // Create temp CSV file
     const csvData = `name,unit,category,brand,stock,status,image,description
 Hammer,pcs,Tools,BrandX,10,In Stock,,Sample`;
 

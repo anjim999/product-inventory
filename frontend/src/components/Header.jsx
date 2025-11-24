@@ -43,7 +43,7 @@ export default function Header() {
               <div className="p-2">
                 <button
                   onClick={handleLogout} // Using the new handler
-                  className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold rounded-lg 
+                  className="cursor-pointer w-full flex items-center justify-between px-4 py-3 text-sm font-semibold rounded-lg 
                              bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-700/50 
                              hover:from-red-700 hover:to-red-800 hover:shadow-xl hover:shadow-red-800/70 
                              active:scale-[0.98] transition duration-200"

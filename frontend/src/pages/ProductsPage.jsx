@@ -125,7 +125,7 @@ export default function ProductsPage() {
   return (
     <div className="min-h-screen">
       <Header />
-      <main className="max-w-6xl mx-auto px-4 py-6 flex gap-4 mt-13">
+      <main className="w-full mx-auto px-4 py-6 flex gap-4 mt-13">
         <section className="flex-1 flex flex-col gap-4">
           {summary && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">

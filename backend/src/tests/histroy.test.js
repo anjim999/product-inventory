@@ -12,7 +12,6 @@ beforeAll(done => {
   });
 });
 
-// afterAll(done => db.close(done));
 
 describe("Inventory History API", () => {
   test("Create product first", async () => {
@@ -36,7 +35,7 @@ describe("Inventory History API", () => {
       .field("unit", "pcs")
       .field("category", "Tools")
       .field("brand", "Generic")
-      .field("stock", "5") // change stock to create log entry
+      .field("stock", "5")
       .expect(200);
 
     expect(res.body.stock).toBe(5);

@@ -2,7 +2,6 @@ const request = require("supertest");
 const app = require("../server");
 const db = require("../db");
 
-// Mock email + OTP utils
 jest.mock("../utils/mailer");
 jest.mock("../utils/otp");
 
@@ -13,7 +12,6 @@ beforeAll(done => {
   });
 });
 
-// afterAll(done => db.close(done));
 
 describe("AUTH API", () => {
 
@@ -22,7 +20,6 @@ describe("AUTH API", () => {
   const TEST_NAME = "Test User";
   const FIXED_OTP = "1234";
 
-  // 1️⃣ REGISTER: Request OTP
   test("POST /api/auth/register-request-otp should generate OTP", async () => {
     const res = await request(app)
       .post("/api/auth/register-request-otp")
@@ -32,9 +29,7 @@ describe("AUTH API", () => {
     expect(res.body.message).toMatch(/OTP generated/i);
   });
 
-  // 2️⃣ REGISTER: Verify OTP + Create user
   test("POST /api/auth/register-verify should create user", async () => {
-    // Insert OTP manually (mocking send email)
     await new Promise(resolve => {
       db.run(
         "INSERT INTO otps (email, code, purpose, expires_at, used) VALUES (?, ?, ?, ?, 0)",
@@ -57,7 +52,6 @@ describe("AUTH API", () => {
     expect(res.body.user.email).toBe(TEST_EMAIL);
   });
 
-  // 3️⃣ LOGIN: Valid credentials
   test("POST /api/auth/login should login successfully", async () => {
     const res = await request(app)
       .post("/api/auth/login")
@@ -71,7 +65,6 @@ describe("AUTH API", () => {
     expect(res.body).toHaveProperty("token");
   });
 
-  // 4️⃣ LOGIN: Wrong password
   test("POST /api/auth/login should fail on wrong password", async () => {
     await request(app)
       .post("/api/auth/login")
@@ -82,7 +75,6 @@ describe("AUTH API", () => {
       .expect(400);
   });
 
-  // 5️⃣ FORGOT PASSWORD - Request OTP
   test("POST /api/auth/forgot-password-request should return generic response", async () => {
     const res = await request(app)
       .post("/api/auth/forgot-password-request")
@@ -92,7 +84,6 @@ describe("AUTH API", () => {
     expect(res.body.message).toMatch(/OTP has been sent/i);
   });
 
-  // Insert reset OTP
   beforeAll(done => {
     db.run(
       "INSERT INTO otps (email, code, purpose, expires_at, used) VALUES (?, ?, ?, ?, 0)",
