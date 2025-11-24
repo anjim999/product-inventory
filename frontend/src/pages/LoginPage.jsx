@@ -110,14 +110,14 @@ export default function LoginPage() {
         <div className="flex justify-between text-xs pt-2">
           <Link
             to="/register"
-            className="text-blue-600 font-medium hover:text-blue-700 hover:underline cursor-pointer transition duration-150"
+            className="text-blue-600 font-medium hover:underline cursor-pointer transition-colors duration-150"
           >
             Register
           </Link>
 
           <Link
             to="/forgot-password"
-            className="text-blue-600 font-medium hover:text-blue-700 hover:underline cursor-pointer transition duration-150"
+            className="text-blue-600 font-medium hover:underline cursor-pointer transition-colors duration-150"
           >
             Forgot password?
           </Link>
