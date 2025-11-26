@@ -4,17 +4,15 @@ const path = require('path');
 
 let db;
 
-// Use in-memory DB for tests (never touches your real DB)
 if (process.env.NODE_ENV === "test") {
   db = new sqlite3.Database(':memory:');
   console.log("🧪 Using in-memory database for Jest tests");
 } else {
   const dbPath = path.join(__dirname, '..', 'inventory.db');
   db = new sqlite3.Database(dbPath);
-  console.log("📦 Using persistent database:", dbPath);
+  console.log("Using persistent database:", dbPath);
 }
 
-// Create tables
 db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS users (

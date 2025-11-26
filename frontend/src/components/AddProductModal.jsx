@@ -100,7 +100,7 @@ export default function AddProductModal({ onAdded }) {
               </h2>
               <button
                 type="button"
-                className="text-slate-500 hover:text-slate-700 p-2 rounded-full hover:bg-slate-100 transition focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="cursor-pointer text-slate-500 hover:text-slate-700 p-2 rounded-full hover:bg-slate-100 transition focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 onClick={handleClose}
               >
                 {/* Modern close icon style */}
