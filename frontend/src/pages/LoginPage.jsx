@@ -1,11 +1,15 @@
 // src/pages/LoginPage.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axiosClient";
 import { FaSignInAlt, FaSpinner } from "react-icons/fa";
+import { FcGoogle } from "react-icons/fc";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+console.log("VITE_GOOGLE_CLIENT_ID =", import.meta.env.VITE_GOOGLE_CLIENT_ID);
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -14,6 +18,32 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  // Load Google Identity Services script
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) {
+      console.warn(
+        "VITE_GOOGLE_CLIENT_ID is not set. Google login will be disabled."
+      );
+      return;
+    }
+
+    const existingScript = document.querySelector(
+      'script[src="https://accounts.google.com/gsi/client"]'
+    );
+    if (existingScript) return;
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,7 +63,6 @@ export default function LoginPage() {
       toast.success("Login successful!", { autoClose: 1500 });
 
       setTimeout(() => {
-        // Redirect role wise
         if (user.role === "admin") navigate("/admin");
         else navigate("/products");
       }, 1500);
@@ -42,6 +71,73 @@ export default function LoginPage() {
       toast.error(backendMsg || "Login failed. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    if (!GOOGLE_CLIENT_ID) {
+      toast.error("Google login is not configured.");
+      return;
+    }
+
+    if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+      toast.error("Google services not loaded yet. Please try again.");
+      return;
+    }
+
+    setGoogleLoading(true);
+
+    try {
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async (response) => {
+          const idToken = response.credential;
+          if (!idToken) {
+            toast.error("Google login failed: no credential received.");
+            setGoogleLoading(false);
+            return;
+          }
+
+          try {
+            const res = await api.post("/api/auth/google", { idToken });
+            const { token, user } = res.data || {};
+
+            if (!token || !user) {
+              toast.error("Google login succeeded but no token/user returned.");
+              setGoogleLoading(false);
+              return;
+            }
+
+            login({ token, user });
+
+            toast.success("Logged in with Google!", { autoClose: 1500 });
+
+            setTimeout(() => {
+              if (user.role === "admin") navigate("/admin");
+              else navigate("/products");
+            }, 1500);
+          } catch (err) {
+            const backendMsg = err?.response?.data?.message;
+            toast.error(backendMsg || "Google login failed. Please try again.");
+          } finally {
+            setGoogleLoading(false);
+          }
+        },
+      });
+
+      // Show Google One Tap or account chooser
+      window.google.accounts.id.prompt((notification) => {
+        const notDisplayed = notification.isNotDisplayed?.();
+        const skipped = notification.isSkippedMoment?.();
+        if (notDisplayed || skipped) {
+          // User closed / blocked / not shown
+          setGoogleLoading(false);
+        }
+      });
+    } catch (err) {
+      console.error("Error during Google login:", err);
+      toast.error("Google login failed. Please try again.");
+      setGoogleLoading(false);
     }
   };
 
@@ -101,6 +197,33 @@ export default function LoginPage() {
             )}
           </button>
         </form>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-gray-200" />
+          <span className="text-xs text-gray-400">OR</span>
+          <div className="h-px flex-1 bg-gray-200" />
+        </div>
+
+        {/* Google Login Button */}
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          disabled={googleLoading || loading}
+          className="cursor-pointer w-full border border-gray-300 bg-white text-gray-800 py-2.5 rounded-lg font-semibold shadow-sm hover:bg-gray-50 active:scale-[0.98] transition duration-150 flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {googleLoading ? (
+            <>
+              <FaSpinner className="animate-spin w-4 h-4" />
+              <span>Connecting to Google...</span>
+            </>
+          ) : (
+            <>
+              <FcGoogle className="w-5 h-5" />
+              <span>Continue with Google</span>
+            </>
+          )}
+        </button>
 
         <div className="flex justify-between text-xs pt-2">
           <Link
