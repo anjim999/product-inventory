@@ -22,7 +22,9 @@ db.serialize(() => {
       password TEXT NOT NULL,
       role TEXT DEFAULT 'user',
       is_verified INTEGER DEFAULT 1,
-      created_at TEXT
+      created_at TEXT,
+      google_id TEXT,
+      avatar TEXT
     )
   `);
 

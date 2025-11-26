@@ -1,5 +1,5 @@
 
-
+//backend/src/utils/mailer.js
 const { BREVO_API_KEY, EMAIL_FROM } = require('../config/env');
 async function sendOtpEmail({ to, otp, purpose }) {
   try {
