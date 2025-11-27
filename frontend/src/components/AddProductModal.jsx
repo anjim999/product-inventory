@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import api from '../api/axiosClient';
 import { toast, ToastContainer } from 'react-toastify';
+import { FaCamera, FaUpload } from 'react-icons/fa';
 import 'react-toastify/dist/ReactToastify.css';
 
 export default function AddProductModal({ onAdded }) {
@@ -15,6 +16,9 @@ export default function AddProductModal({ onAdded }) {
     description: '',
   });
   const [submitting, setSubmitting] = useState(false);
+
+  const cameraInputRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -79,9 +83,6 @@ export default function AddProductModal({ onAdded }) {
         className="cursor-pointer inline-flex items-center gap-2 text-sm bg-green-600 text-white px-4 py-2 rounded-xl shadow-lg hover:bg-green-700 hover:shadow-xl active:scale-[0.98] transition duration-200 font-medium"
         onClick={() => setOpen(true)}
       >
-        {/* <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-        </svg> */}
         <span>Add New Product</span>
       </button>
 
@@ -112,7 +113,6 @@ export default function AddProductModal({ onAdded }) {
 
             <form onSubmit={handleSubmit} className="p-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-6">
-                
                 {inputFields.map(({ field, label, placeholder }) => (
                   <div key={field} className="col-span-1">
                     <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -140,7 +140,7 @@ export default function AddProductModal({ onAdded }) {
                     placeholder="Enter a detailed description of the product and any relevant notes..."
                   />
                 </div>
-                
+
                 <div className="sm:col-span-1">
                   <label className="block text-sm font-medium text-slate-700 mb-1">
                     Stock Quantity
@@ -157,18 +157,67 @@ export default function AddProductModal({ onAdded }) {
                   />
                 </div>
 
+                {/* 📷 Camera + 📁 Choose File in same line */}
                 <div className="sm:col-span-1">
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Image / PDF Attachment
+                    Product Image
                   </label>
+
+                  <div className="flex items-center gap-3">
+                    {/* Camera button */}
+                    <button
+                      type="button"
+                      className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl border border-indigo-500 text-indigo-600 bg-indigo-50 hover:bg-indigo-600 hover:text-white shadow-sm transition"
+                      onClick={() => cameraInputRef.current?.click()}
+                    >
+                      <FaCamera className="w-3.5 h-3.5" />
+                      <span>Camera</span>
+                    </button>
+
+                    {/* Choose file button */}
+                    <button
+                      type="button"
+                      className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 text-slate-700 bg-slate-50 hover:bg-slate-100 shadow-sm transition"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <FaUpload className="w-3.5 h-3.5" />
+                      <span>Choose File</span>
+                    </button>
+                  </div>
+
+                  {/* Hidden input for camera (mobile opens camera) */}
                   <input
+                    ref={cameraInputRef}
                     type="file"
-                    accept="image/*,application/pdf"
-                    className="cursor-pointer w-full border border-slate-300 rounded-xl text-sm bg-slate-50 hover:bg-slate-100 transition file:cursor-pointer file:h-full file:px-4 file:py-2 file:text-sm file:rounded-l-xl file:border-0 file:bg-indigo-600 file:text-white file:mr-3 file:font-medium"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
                     onChange={(e) =>
                       handleChange('image', e.target.files?.[0] || null)
                     }
                   />
+
+                  {/* Hidden input for normal file picker */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="hidden"
+                    onChange={(e) =>
+                      handleChange('image', e.target.files?.[0] || null)
+                    }
+                  />
+
+                  {form.image && (
+                    <p className="mt-2 text-xs text-slate-500 truncate">
+                      Selected: <span className="font-medium">{form.image.name}</span>
+                    </p>
+                  )}
+
+                  <p className="mt-1 text-[11px] text-slate-400">
+                    Use <span className="font-semibold">Camera</span> to capture a photo (mobile),
+                    or <span className="font-semibold">Choose File</span> to upload from gallery / files.
+                  </p>
                 </div>
               </div>
 

@@ -466,7 +466,8 @@ export default function ProductTable({
                               <FaCamera className="w-3 h-3" />
                               <input
                                 type="file"
-                                accept="image/*"
+                                accept="image/*,application/pdf"
+                                capture="environment"
                                 className="cursor-pointer w-full border border-slate-300 rounded-lg px-1 py-0.5 text-[10px]
                                   file:mr-2 file:py-1 file:px-2
                                   file:rounded-md file:border-0
