@@ -1,4 +1,5 @@
 // src/components/ProductTable.jsx
+
 import { useState } from 'react';
 import api from '../api/axiosClient';
 import {
@@ -9,6 +10,7 @@ import {
   FaCamera,
   FaSpinner,
   FaSort,
+  FaHistory, // Added FaHistory icon
 } from 'react-icons/fa';
 
 import { toast } from 'react-toastify';
@@ -128,9 +130,6 @@ export default function ProductTable({
     setProductToDelete(null);
   };
 
-  // This function is responsible for opening the inventory history sidebar.
-  // It is triggered by clicks on the entire row, but we want to visually guide users
-  // to click the Image or Status.
   const handleRowClick = (product) => {
     if (editingId === product.id) return;
     onSelectProduct(product);
@@ -151,9 +150,18 @@ export default function ProductTable({
     return sortOrder === 'asc' ? '↑' : '↓';
   };
 
+  // 🛠️ Tailwind CSS Class for stylish buttons
+  // Base button style for small actions (slightly smaller now)
+  const actionButtonBase = `
+    cursor-pointer text-[10px] px-2 py-0.5 h-6 rounded-md font-medium
+    inline-flex items-center justify-center gap-1
+    transition-all duration-200 shadow-sm
+    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1
+    w-full
+  `;
+
   return (
     <>
-
       <div className="overflow-x-auto bg-white rounded-xl shadow-lg border border-slate-100">
         <div className="max-h-[30rem] overflow-y-auto no-scrollbar">
           <table className="min-w-full text-sm">
@@ -243,27 +251,29 @@ export default function ProductTable({
                     key={p.id}
                     className={`border-t hover:bg-slate-50 transition-colors duration-150 ${
                       isLowStock ? 'bg-orange-50 hover:bg-orange-100' : ''
-                    } cursor-pointer`}
+                    } cursor-pointer text-xs`}
                     onClick={() => handleRowClick(p)}
                   >
-                    {/* Image TD - Now visually indicates clickability */}
-                    <td className="px-3 py-2">
+                    {/* 🔹 Smaller Image */}
+                    <td className="px-3 py-1.5">
                       {imgSrc ? (
-                        <img
-                          src={imgSrc}
-                          alt={data.name}
-                          // --- UPDATED: Added cursor-pointer and hover effect ---
-                          className="w-10 h-10 object-cover rounded-md border border-slate-200 shadow-sm cursor-pointer hover:shadow-lg transition-all duration-200"
-                        />
+                        <div className="inline-flex items-center justify-center">
+                          <img
+                            src={imgSrc}
+                            alt={data.name}
+                            className="w-10 h-10 object-cover rounded-md border border-slate-200 shadow-sm cursor-pointer
+                            transform transition-transform duration-200 hover:scale-110 hover:shadow-md"
+                          />
+                        </div>
                       ) : (
-                        <div className="w-10 h-10 bg-slate-200 rounded-md flex items-center justify-center text-[10px] text-slate-500">
+                        <div className="w-10 h-10 bg-slate-200 rounded-md flex items-center justify-center text-[8px] text-slate-500 border border-slate-300">
                           No Image
                         </div>
                       )}
                     </td>
 
                     <td
-                      className="px-3 py-2 font-medium text-slate-800"
+                      className="px-3 py-1.5 font-medium text-slate-800"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {isEditing ? (
@@ -287,7 +297,7 @@ export default function ProductTable({
                     </td>
 
                     <td
-                      className="px-3 py-2 text-slate-600"
+                      className="px-3 py-1.5 text-slate-600"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {isEditing ? (
@@ -304,7 +314,7 @@ export default function ProductTable({
                     </td>
 
                     <td
-                      className="px-3 py-2 text-slate-600"
+                      className="px-3 py-1.5 text-slate-600"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {isEditing ? (
@@ -321,7 +331,7 @@ export default function ProductTable({
                     </td>
 
                     <td
-                      className="px-3 py-2 text-slate-600"
+                      className="px-3 py-1.5 text-slate-600"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {isEditing ? (
@@ -337,9 +347,8 @@ export default function ProductTable({
                       )}
                     </td>
 
-                    {/* Stock */}
                     <td
-                      className="px-3 py-2 font-semibold text-slate-800"
+                      className="px-3 py-1.5 font-semibold text-slate-800"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {isEditing ? (
@@ -357,26 +366,43 @@ export default function ProductTable({
                       )}
                     </td>
 
-                    {/* Status TD - Now visually indicates clickability */}
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-1.5">
                       <span
                         className={`inline-flex px-2 py-1 rounded-full text-xs font-medium border ${statusLabel.className}
-                          // --- UPDATED: Added cursor-pointer and hover effect ---
                           cursor-pointer hover:ring-2 hover:ring-offset-1 hover:ring-opacity-50 transition-all duration-150`}
                       >
                         {statusLabel.text}
                       </span>
                     </td>
 
-                    {/* Actions */}
                     <td
-                      className="px-3 py-2 w-[140px]"
+                      className="px-3 py-1.5 w-[120px]"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {!isEditing ? (
-                        <div className="flex flex-col sm:flex-row gap-1">
+                        <div className="flex flex-col gap-1.5">
                           <button
-                            className="cursor-pointer text-xs px-2 py-1 rounded border border-blue-500 text-blue-600 hover:bg-blue-50 transition duration-150 flex items-center space-x-1"
+                            type="button"
+                            className={`${actionButtonBase}
+                              border border-slate-300
+                              text-slate-600 bg-white
+                              hover:bg-slate-50 hover:text-slate-900 hover:border-slate-400
+                              focus-visible:ring-slate-300
+                            `}
+                            onClick={() => handleRowClick(p)}
+                          >
+                            <FaHistory className="w-3 h-3" />
+                            <span>History</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            className={`${actionButtonBase}
+                              border border-blue-500
+                              text-blue-600 bg-blue-50
+                              hover:bg-blue-600 hover:text-white
+                              focus-visible:ring-blue-500
+                            `}
                             onClick={() => startEdit(p)}
                           >
                             <FaEdit className="w-3 h-3" />
@@ -384,7 +410,15 @@ export default function ProductTable({
                           </button>
 
                           <button
-                            className="cursor-pointer text-xs px-2 py-1 rounded bg-red-500 text-white hover:bg-red-600 transition duration-150 flex items-center space-x-1 disabled:opacity-50"
+                            type="button"
+                            className={`
+                              ${actionButtonBase} !font-bold
+                              border border-transparent
+                              bg-rose-500 text-white
+                              hover:bg-rose-600
+                              focus-visible:ring-rose-500
+                              disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none
+                            `}
                             onClick={() => openDeletePopup(p)}
                             disabled={deletingId === p.id || showDeleteModal}
                           >
@@ -399,9 +433,13 @@ export default function ProductTable({
                           </button>
                         </div>
                       ) : (
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                           <button
-                            className="cursor-pointer text-xs px-2 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700 transition duration-150 w-full flex items-center justify-center space-x-1"
+                            className={`${actionButtonBase} !text-[11px] !h-6 !rounded-md !py-0.5
+                              bg-green-600 text-white
+                              hover:bg-green-700 hover:shadow-md
+                              focus-visible:ring-green-600
+                            `}
                             onClick={saveEdit}
                           >
                             <FaSave className="w-3 h-3" />
@@ -409,23 +447,33 @@ export default function ProductTable({
                           </button>
 
                           <button
-                            className="cursor-pointer text-xs px-2 py-1 rounded border border-slate-300 text-slate-700 hover:bg-slate-200 transition duration-150 w-full flex items-center justify-center space-x-1"
+                            className={`${actionButtonBase} !text-[11px] !h-6 !rounded-md !py-0.5
+                              border border-slate-300 text-slate-700 bg-slate-50
+                              hover:bg-slate-200
+                              focus-visible:ring-slate-400
+                            `}
                             onClick={cancelEdit}
                           >
                             <FaTimes className="w-3 h-3" />
                             <span>Cancel</span>
                           </button>
 
-                          <div className="mt-2 pt-1 border-t border-slate-100">
-                            <label className="cursor-pointer block text-[10px] mb-0.5 text-slate-600">
-                              Change Image
+                          <div className="pt-1.5 border-t border-slate-200">
+                            <label className="cursor-pointer block text-[10px] mb-0.5 text-slate-600 font-semibold">
+                              Change Image:
                             </label>
                             <div className="flex items-center space-x-1 text-slate-500">
                               <FaCamera className="w-3 h-3" />
                               <input
                                 type="file"
                                 accept="image/*"
-                                className="cursor-pointer w-full border border-slate-300 rounded px-1 py-0.5 text-[10px]"
+                                className="cursor-pointer w-full border border-slate-300 rounded-lg px-1 py-0.5 text-[10px]
+                                  file:mr-2 file:py-1 file:px-2
+                                  file:rounded-md file:border-0
+                                  file:text-xs file:font-semibold
+                                  file:bg-blue-50 file:text-blue-700
+                                  file:cursor-pointer
+                                  hover:file:bg-blue-100"
                                 onChange={(e) =>
                                   handleChange(
                                     'imageFile',
@@ -482,13 +530,13 @@ export default function ProductTable({
             <div className="flex justify-end space-x-3">
               <button
                 onClick={cancelDelete}
-                className="cursor-pointer px-5 py-2 text-sm font-semibold rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 transition"
+                className="cursor-pointer px-5 py-2 text-sm font-semibold rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 transition shadow-sm"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
-                className="cursor-pointer px-5 py-2 text-sm font-semibold rounded-lg bg-rose-600 text-white hover:bg-rose-700 transition"
+                className="cursor-pointer px-5 py-2 text-sm font-semibold rounded-xl bg-rose-600 text-white hover:bg-rose-700 transition shadow-md hover:shadow-lg hover:shadow-rose-500/50"
               >
                 Confirm Delete
               </button>
