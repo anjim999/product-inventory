@@ -51,21 +51,17 @@ export default function ProductTable({
   const [productToDelete, setProductToDelete] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
-  // Image preview for edit image
   const [editImagePreview, setEditImagePreview] = useState(null);
 
-  // Camera modal state (shared, but only used when editing a row)
   const [showCamera, setShowCamera] = useState(false);
   const [cameraError, setCameraError] = useState('');
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
 
-  // Hidden file input for "Choose File" in edit mode
   const fileInputRef = useRef(null);
 
   const startEdit = (product) => {
-    // Clear previous preview if any
     if (editImagePreview) {
       URL.revokeObjectURL(editImagePreview);
       setEditImagePreview(null);
@@ -78,7 +74,7 @@ export default function ProductTable({
     setEditForm({
       ...product,
       stock: String(product.stock ?? 0),
-      imageFile: null, // new file (if user selects/captures)
+      imageFile: null, 
     });
   };
 
@@ -202,7 +198,6 @@ export default function ProductTable({
     return sortOrder === 'asc' ? '↑' : '↓';
   };
 
-  // 🛠️ Tailwind CSS Class for stylish buttons
   const actionButtonBase = `
     cursor-pointer text-[10px] px-2 py-0.5 h-6 rounded-md font-medium
     inline-flex items-center justify-center gap-1
@@ -211,7 +206,6 @@ export default function ProductTable({
     w-full
   `;
 
-  // 🔴 Stop camera stream helper
   const stopCameraStream = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
@@ -219,14 +213,12 @@ export default function ProductTable({
     }
   };
 
-  // 🎥 Open camera modal (only makes sense while editing)
   const openCamera = () => {
     if (!editingId) return;
     setCameraError('');
     setShowCamera(true);
   };
 
-  // Setup camera when showCamera = true
   useEffect(() => {
     if (!showCamera) {
       stopCameraStream();
@@ -314,7 +306,6 @@ export default function ProductTable({
     setShowCamera(false);
   };
 
-  // 🗑️ Clear edit image (camera or file)
   const handleClearEditImage = () => {
     if (editImagePreview) {
       URL.revokeObjectURL(editImagePreview);
@@ -420,9 +411,7 @@ export default function ProductTable({
                           'bg-green-100 text-green-700 border border-green-200',
                       };
 
-                // Base image from product (server)
                 const baseImgSrc = resolveImageUrl(p.image);
-                // If editing and user selected new image, show preview instead
                 const imgSrc =
                   isEditing && editImagePreview ? editImagePreview : baseImgSrc;
 
@@ -643,7 +632,6 @@ export default function ProductTable({
                               Change Image
                             </label>
 
-                            {/* Camera + Choose File buttons */}
                             <div className="flex items-center gap-2 mb-2">
                               <button
                                 type="button"
@@ -664,7 +652,6 @@ export default function ProductTable({
                               </button>
                             </div>
 
-                            {/* Hidden file input */}
                             <input
                               ref={fileInputRef}
                               type="file"
@@ -781,7 +768,6 @@ export default function ProductTable({
         </div>
       )}
 
-      {/* 🎥 Camera Modal for editing product image */}
       {showCamera && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4">
           <div className="bg-slate-900 rounded-3xl shadow-3xl w-full max-w-md relative overflow-hidden">
@@ -840,7 +826,6 @@ export default function ProductTable({
               )}
             </div>
 
-            {/* Hidden canvas for capturing frame */}
             <canvas ref={canvasRef} className="hidden" />
           </div>
         </div>

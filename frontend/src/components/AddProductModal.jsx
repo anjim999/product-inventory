@@ -30,7 +30,6 @@ export default function AddProductModal({ onAdded }) {
   const fileInputRef = useRef(null);
 
   const handleChange = (field, value) => {
-    // Special handling for image to manage preview URL
     if (field === 'image') {
       if (imagePreview) {
         URL.revokeObjectURL(imagePreview);
@@ -69,7 +68,6 @@ export default function AddProductModal({ onAdded }) {
       onAdded();
       setOpen(false);
 
-      // Reset form & image preview
       if (imagePreview) {
         URL.revokeObjectURL(imagePreview);
       }
@@ -107,7 +105,6 @@ export default function AddProductModal({ onAdded }) {
     { field: 'brand', label: 'Brand', placeholder: 'e.g., Acme Corp, Generic' },
   ];
 
-  // 🔴 Stop camera stream helper
   const stopCameraStream = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
@@ -115,13 +112,11 @@ export default function AddProductModal({ onAdded }) {
     }
   };
 
-  // 🎥 Open camera modal
   const openCamera = () => {
     setCameraError('');
     setShowCamera(true);
   };
 
-  // Setup camera when showCamera = true
   useEffect(() => {
     if (!showCamera) {
       stopCameraStream();
@@ -168,7 +163,6 @@ export default function AddProductModal({ onAdded }) {
     };
   }, [showCamera]);
 
-  // 📸 Capture photo from video
   const handleCapturePhoto = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -209,7 +203,6 @@ export default function AddProductModal({ onAdded }) {
     setShowCamera(false);
   };
 
-  // 🗑️ Clear selected image (from camera or file)
   const handleClearImage = () => {
     if (imagePreview) {
       URL.revokeObjectURL(imagePreview);
@@ -316,14 +309,12 @@ export default function AddProductModal({ onAdded }) {
                   />
                 </div>
 
-                {/* 📷 Camera + 📁 Choose File in same line */}
                 <div className="sm:col-span-1">
                   <label className="block text-sm font-medium text-slate-700 mb-1">
                     Product Image
                   </label>
 
                   <div className="flex items-center gap-3">
-                    {/* Camera button */}
                     <button
                       type="button"
                       className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl border border-indigo-500 text-indigo-600 bg-indigo-50 hover:bg-indigo-600 hover:text-white shadow-sm transition"
@@ -333,7 +324,6 @@ export default function AddProductModal({ onAdded }) {
                       <span>Camera</span>
                     </button>
 
-                    {/* Choose file button */}
                     <button
                       type="button"
                       className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 text-slate-700 bg-slate-50 hover:bg-slate-100 shadow-sm transition"
@@ -344,7 +334,6 @@ export default function AddProductModal({ onAdded }) {
                     </button>
                   </div>
 
-                  {/* Hidden input for normal file picker */}
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -355,7 +344,6 @@ export default function AddProductModal({ onAdded }) {
                     }
                   />
 
-                  {/* Preview + delete section */}
                   {form.image && (
                     <div className="mt-3 flex items-center gap-3 p-2 rounded-xl border border-slate-200 bg-slate-50">
                       {imagePreview &&
@@ -416,7 +404,6 @@ export default function AddProductModal({ onAdded }) {
         </div>
       )}
 
-      {/* 🎥 Camera Modal */}
       {showCamera && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4">
           <div className="bg-slate-900 rounded-3xl shadow-3xl w-full max-w-md relative overflow-hidden">
@@ -475,7 +462,6 @@ export default function AddProductModal({ onAdded }) {
               )}
             </div>
 
-            {/* Hidden canvas for capturing frame */}
             <canvas ref={canvasRef} className="hidden" />
           </div>
         </div>
