@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import api from '../api/axiosClient';
 import { toast, ToastContainer } from 'react-toastify';
-import { FaCamera, FaUpload } from 'react-icons/fa';
+import { FaCamera, FaUpload, FaTimes, FaTrashAlt } from 'react-icons/fa';
 import 'react-toastify/dist/ReactToastify.css';
 
 export default function AddProductModal({ onAdded }) {
@@ -17,10 +17,32 @@ export default function AddProductModal({ onAdded }) {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  const cameraInputRef = useRef(null);
+  // For previewing selected image
+  const [imagePreview, setImagePreview] = useState(null);
+
+  // Camera modal state
+  const [showCamera, setShowCamera] = useState(false);
+  const [cameraError, setCameraError] = useState('');
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
+
   const fileInputRef = useRef(null);
 
   const handleChange = (field, value) => {
+    // Special handling for image to manage preview URL
+    if (field === 'image') {
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+      if (value) {
+        const previewUrl = URL.createObjectURL(value);
+        setImagePreview(previewUrl);
+      } else {
+        setImagePreview(null);
+      }
+    }
+
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -46,6 +68,13 @@ export default function AddProductModal({ onAdded }) {
 
       onAdded();
       setOpen(false);
+
+      // Reset form & image preview
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+      setImagePreview(null);
+
       setForm({
         name: '',
         unit: '',
@@ -55,6 +84,10 @@ export default function AddProductModal({ onAdded }) {
         image: null,
         description: '',
       });
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Error adding product');
     } finally {
@@ -73,6 +106,120 @@ export default function AddProductModal({ onAdded }) {
     { field: 'category', label: 'Category', placeholder: 'e.g., Food & Beverage, Electronics' },
     { field: 'brand', label: 'Brand', placeholder: 'e.g., Acme Corp, Generic' },
   ];
+
+  // 🔴 Stop camera stream helper
+  const stopCameraStream = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+  };
+
+  // 🎥 Open camera modal
+  const openCamera = () => {
+    setCameraError('');
+    setShowCamera(true);
+  };
+
+  // Setup camera when showCamera = true
+  useEffect(() => {
+    if (!showCamera) {
+      stopCameraStream();
+      return;
+    }
+
+    let cancelled = false;
+
+    const setupCamera = async () => {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          setCameraError('Camera not supported in this browser.');
+          return;
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' },
+        });
+
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+
+        streamRef.current = stream;
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+      } catch (err) {
+        console.error('Camera error:', err);
+        setCameraError(
+          'Unable to access camera. Please check permissions or try another browser.'
+        );
+      }
+    };
+
+    setupCamera();
+
+    return () => {
+      cancelled = true;
+      stopCameraStream();
+    };
+  }, [showCamera]);
+
+  // 📸 Capture photo from video
+  const handleCapturePhoto = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+
+    const width = video.videoWidth;
+    const height = video.videoHeight;
+
+    if (!width || !height) {
+      setCameraError('Camera not ready. Please wait a moment and try again.');
+      return;
+    }
+
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, width, height);
+
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          const file = new File([blob], `product-${Date.now()}.png`, {
+            type: 'image/png',
+          });
+          handleChange('image', file);
+          setShowCamera(false);
+        } else {
+          setCameraError('Failed to capture image. Please try again.');
+        }
+      },
+      'image/png',
+      0.92
+    );
+  };
+
+  const handleCameraClose = () => {
+    setShowCamera(false);
+  };
+
+  // 🗑️ Clear selected image (from camera or file)
+  const handleClearImage = () => {
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
+    setImagePreview(null);
+    setForm((prev) => ({ ...prev, image: null }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   return (
     <>
@@ -104,9 +251,19 @@ export default function AddProductModal({ onAdded }) {
                 className="cursor-pointer text-slate-500 hover:text-slate-700 p-2 rounded-full hover:bg-slate-100 transition focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 onClick={handleClose}
               >
-                {/* Modern close icon style */}
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -136,7 +293,9 @@ export default function AddProductModal({ onAdded }) {
                     className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-base text-slate-700 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 transition shadow-sm resize-y"
                     rows={4}
                     value={form.description}
-                    onChange={(e) => handleChange('description', e.target.value)}
+                    onChange={(e) =>
+                      handleChange('description', e.target.value)
+                    }
                     placeholder="Enter a detailed description of the product and any relevant notes..."
                   />
                 </div>
@@ -168,7 +327,7 @@ export default function AddProductModal({ onAdded }) {
                     <button
                       type="button"
                       className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl border border-indigo-500 text-indigo-600 bg-indigo-50 hover:bg-indigo-600 hover:text-white shadow-sm transition"
-                      onClick={() => cameraInputRef.current?.click()}
+                      onClick={openCamera}
                     >
                       <FaCamera className="w-3.5 h-3.5" />
                       <span>Camera</span>
@@ -185,18 +344,6 @@ export default function AddProductModal({ onAdded }) {
                     </button>
                   </div>
 
-                  {/* Hidden input for camera (mobile opens camera) */}
-                  <input
-                    ref={cameraInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    onChange={(e) =>
-                      handleChange('image', e.target.files?.[0] || null)
-                    }
-                  />
-
                   {/* Hidden input for normal file picker */}
                   <input
                     ref={fileInputRef}
@@ -208,14 +355,40 @@ export default function AddProductModal({ onAdded }) {
                     }
                   />
 
+                  {/* Preview + delete section */}
                   {form.image && (
-                    <p className="mt-2 text-xs text-slate-500 truncate">
-                      Selected: <span className="font-medium">{form.image.name}</span>
-                    </p>
+                    <div className="mt-3 flex items-center gap-3 p-2 rounded-xl border border-slate-200 bg-slate-50">
+                      {imagePreview &&
+                        form.image.type &&
+                        form.image.type.startsWith('image/') && (
+                          <img
+                            src={imagePreview}
+                            alt="Selected preview"
+                            className="w-12 h-12 rounded-lg object-cover border border-slate-300"
+                          />
+                        )}
+
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-slate-600 truncate">
+                          Selected:{' '}
+                          <span className="font-medium">
+                            {form.image.name}
+                          </span>
+                        </p>
+                        <button
+                          type="button"
+                          className="cursor-pointer mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 hover:text-rose-700"
+                          onClick={handleClearImage}
+                        >
+                          <FaTrashAlt className="w-3 h-3" />
+                          <span>Remove</span>
+                        </button>
+                      </div>
+                    </div>
                   )}
 
                   <p className="mt-1 text-[11px] text-slate-400">
-                    Use <span className="font-semibold">Camera</span> to capture a photo (mobile),
+                    Use <span className="font-semibold">Camera</span> to capture a photo using your webcam,
                     or <span className="font-semibold">Choose File</span> to upload from gallery / files.
                   </p>
                 </div>
@@ -239,6 +412,71 @@ export default function AddProductModal({ onAdded }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 🎥 Camera Modal */}
+      {showCamera && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4">
+          <div className="bg-slate-900 rounded-3xl shadow-3xl w-full max-w-md relative overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
+              <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+                <FaCamera className="w-4 h-4" />
+                Capture Product Image
+              </h3>
+              <button
+                type="button"
+                className="p-2 rounded-full text-slate-300 hover:bg-slate-800 hover:text-white transition"
+                onClick={handleCameraClose}
+              >
+                <FaTimes className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 flex flex-col gap-3">
+              {cameraError ? (
+                <p className="text-xs text-red-300 bg-red-900/40 border border-red-700 rounded-lg px-3 py-2">
+                  {cameraError}
+                </p>
+              ) : (
+                <>
+                  <div className="bg-black rounded-2xl overflow-hidden border border-slate-700">
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      className="w-full max-h-72 object-contain bg-black"
+                    />
+                  </div>
+
+                  <p className="text-[11px] text-slate-400 text-center">
+                    Position the product in the frame and click{' '}
+                    <span className="font-semibold text-slate-200">Capture</span>.
+                  </p>
+
+                  <div className="flex justify-center gap-3 pt-2 pb-1">
+                    <button
+                      type="button"
+                      className="cursor-pointer px-5 py-2 text-xs rounded-full bg-slate-700 text-slate-100 font-semibold hover:bg-slate-600 transition"
+                      onClick={handleCameraClose}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="cursor-pointer px-5 py-2 text-xs rounded-full bg-emerald-500 text-white font-semibold hover:bg-emerald-600 shadow-md transition"
+                      onClick={handleCapturePhoto}
+                    >
+                      Capture
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Hidden canvas for capturing frame */}
+            <canvas ref={canvasRef} className="hidden" />
           </div>
         </div>
       )}
