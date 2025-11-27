@@ -128,6 +128,9 @@ export default function ProductTable({
     setProductToDelete(null);
   };
 
+  // This function is responsible for opening the inventory history sidebar.
+  // It is triggered by clicks on the entire row, but we want to visually guide users
+  // to click the Image or Status.
   const handleRowClick = (product) => {
     if (editingId === product.id) return;
     onSelectProduct(product);
@@ -243,12 +246,14 @@ export default function ProductTable({
                     } cursor-pointer`}
                     onClick={() => handleRowClick(p)}
                   >
+                    {/* Image TD - Now visually indicates clickability */}
                     <td className="px-3 py-2">
                       {imgSrc ? (
                         <img
                           src={imgSrc}
                           alt={data.name}
-                          className="w-10 h-10 object-cover rounded-md border border-slate-200 shadow-sm"
+                          // --- UPDATED: Added cursor-pointer and hover effect ---
+                          className="w-10 h-10 object-cover rounded-md border border-slate-200 shadow-sm cursor-pointer hover:shadow-lg transition-all duration-200"
                         />
                       ) : (
                         <div className="w-10 h-10 bg-slate-200 rounded-md flex items-center justify-center text-[10px] text-slate-500">
@@ -352,9 +357,12 @@ export default function ProductTable({
                       )}
                     </td>
 
+                    {/* Status TD - Now visually indicates clickability */}
                     <td className="px-3 py-2">
                       <span
-                        className={`inline-flex px-2 py-1 rounded-full text-xs font-medium border ${statusLabel.className}`}
+                        className={`inline-flex px-2 py-1 rounded-full text-xs font-medium border ${statusLabel.className}
+                          // --- UPDATED: Added cursor-pointer and hover effect ---
+                          cursor-pointer hover:ring-2 hover:ring-offset-1 hover:ring-opacity-50 transition-all duration-150`}
                       >
                         {statusLabel.text}
                       </span>

@@ -89,7 +89,7 @@ router.post(
       (err, otpRow) => {
         if (err) {
           console.error("DB error reading OTP:", err);
-          return res.status(500).json({ message: "DB error" });
+          return res.status(500).json(err);
         }
         if (!otpRow) {
           return res.status(400).json({ message: "Invalid OTP" });

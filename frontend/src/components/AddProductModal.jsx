@@ -175,7 +175,7 @@ export default function AddProductModal({ onAdded }) {
               <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-6 border-t border-slate-200 mt-6">
                 <button
                   type="button"
-                  className="px-6 py-2.5 text-base rounded-xl border border-slate-300 text-slate-700 font-medium hover:bg-slate-100 active:scale-[0.98] transition shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  className="cursor-pointer px-6 py-2.5 text-base rounded-xl border border-slate-300 text-slate-700 font-medium hover:bg-slate-100 active:scale-[0.98] transition shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
                   onClick={handleClose}
                   disabled={submitting}
                 >
@@ -183,7 +183,7 @@ export default function AddProductModal({ onAdded }) {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 text-base rounded-xl bg-indigo-600 text-white font-semibold shadow-lg hover:bg-indigo-700 hover:shadow-xl active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                  className="cursor-pointer px-6 py-2.5 text-base rounded-xl bg-indigo-600 text-white font-semibold shadow-lg hover:bg-indigo-700 hover:shadow-xl active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                   disabled={submitting}
                 >
                   {submitting ? 'Saving Product...' : 'Save Product'}
