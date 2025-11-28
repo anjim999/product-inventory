@@ -306,16 +306,7 @@ router.post(
   }
 );
 
-/**
- * Google Login
- * POST /api/auth/google
- * Body: { idToken: string }
- */
-/**
- * Google Login
- * POST /api/auth/google
- * Body: { idToken?: string, credential?: string }
- */
+
 router.post("/google", async (req, res) => {
   try {
     const { idToken, credential } = req.body || {};
@@ -336,7 +327,6 @@ router.post("/google", async (req, res) => {
         .json({ message: "Google login is not configured on server." });
     }
 
-    // Verify ID token with Google
     const ticket = await googleClient.verifyIdToken({
       idToken: token,
       audience: GOOGLE_CLIENT_ID,
@@ -356,7 +346,6 @@ router.post("/google", async (req, res) => {
         .json({ message: "Google account does not have a valid email." });
     }
 
-    // TC: O(1) average lookup by email
     db.get(
       "SELECT * FROM users WHERE email = ?",
       [email],
@@ -367,7 +356,6 @@ router.post("/google", async (req, res) => {
         }
 
         if (userRow) {
-          // Existing user: log them in
           const role = userRow.role || "user";
 
           const jwtPayload = {
@@ -396,11 +384,9 @@ router.post("/google", async (req, res) => {
           });
         }
 
-        // New user: create a record
         const createdAt = new Date().toISOString();
         const role = "user";
 
-        // Dummy password to satisfy NOT NULL constraint
         const dummyPassword = bcrypt.hashSync(googleId + JWT_SECRET, 10);
 
         db.run(
